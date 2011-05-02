@@ -785,14 +785,15 @@ def main():
   sys.stderr.write("Checking NCBI status.. ");
   ncbi_status = check_ncbi_status();
   if not ncbi_status[0]:
-    sys.stderr.write("[FAIL]\n");
+    sys.stderr.write("[FAIL]" + os.linesep);
     print >> sys.stderr, "Error: could not reach NCBI."
     print >> sys.stderr, fill("Snipper requires the ability to query NCBI in order to "
                           "function. It appears NCBI cannot be reached currently. This "
                           "could be caused by your firewall settings, or NCBI may be "
                           "offline temporarily. ");
+    sys.exit(1);
   else:
-    sys.stderr.write("[OK]\n");
+    sys.stderr.write("[OK]" + os.linesep);
 
   run_snipper(settings);
 
