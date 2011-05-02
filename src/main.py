@@ -35,6 +35,7 @@ from intdb import *
 from ranking import *
 from snp import *
 from textwrap import fill
+from ncbi import *
 
 try:
   import sphinx
@@ -776,8 +777,22 @@ def main():
   
   print_program_header();
 
+  # Were there arguments? 
   if len(sys.argv) <= 1:
     die("Nothing to do.. try -h for help.");
+
+  # Check to see if services are online and available. 
+  sys.stderr.write("Checking NCBI status.. ");
+  ncbi_status = check_ncbi_status();
+  if not ncbi_status[0]:
+    sys.stderr.write("[FAIL]\n");
+    print >> sys.stderr, "Error: could not reach NCBI."
+    print >> sys.stderr, fill("Snipper requires the ability to query NCBI in order to "
+                          "function. It appears NCBI cannot be reached currently. This "
+                          "could be caused by your firewall settings, or NCBI may be "
+                          "offline temporarily. ");
+  else:
+    sys.stderr.write("[OK]\n");
 
   run_snipper(settings);
 

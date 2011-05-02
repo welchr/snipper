@@ -41,6 +41,19 @@ EPOST_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/epost.fcgi?tool=snippe
 ESUMMARY_URL = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?tool=snipper&email=%s' % EMAIL;
 OMIM_URL = r"http://www.ncbi.nlm.nih.gov/entrez/dispomim.cgi"; 
 
+# Check to see if NCBI is online. 
+# If this fails, there's either a problem with the internet connection, 
+# or NCBI has banned this address (I don't have a way of knowing which, yet.) 
+def check_ncbi_status():
+  test_query = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=gene&id=23603&retmode=xml";
+  try:
+    response = urllib2.urlopen(test_query);
+  except:
+    msg = str(sys.exc_value);
+    return (False,msg);
+  
+  return (True,'');
+
 # Given a list of SNPs, find genomic positions. 
 def findGenomicPositions(snps):
   snps = make_list(snps);
