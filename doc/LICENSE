@@ -1,0 +1,27 @@
+Snipper is licensed under the GPLv3, see notice below: 
+
+Copyright (C) 2010 Ryan Welch
+
+Snipper is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Snipper is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Snipper is bound by the licensing of those programs, databases, and services included within. 
+
+This software is subject to the restrictions and copyright information set forth by NCBI, which can be referenced at: 
+http://www.ncbi.nlm.nih.gov/About/disclaimer.html
+
+Additionally, all journal abstracts, titles, and other information associated with PubMed as a service of the National Library of Medicine (NLM) may be copyrighted by the journal authors. Please read the link below for more information. 
+http://www.nlm.nih.gov/databases/download.html
+
+OMIM(TM) and Online Mendelian Inheritance in Man(TM) are trademarks of Johns Hopkins University. This software complies with the licensing restrictions set forth by Johns Hopkins University, and may only be used for academic (non-commercial) research applications. 
+http://www.ncbi.nlm.nih.gov/Omim/restrictions.html

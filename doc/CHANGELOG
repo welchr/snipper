@@ -1,0 +1,172 @@
+1.2 Release (03/16/2011):
+-------------------------
+New features: 
+-- Support for switching between different builds using the --build parameter
+(hg18 and hg19 included by default) 
+-- A test dataset has been included in example/ to test that Snipper has
+installed correctly
+-- SNP names that were merged into new names in a later human genome build 
+are now detected and converted automatically. These will appear in the 
+"User Settings" section of the HTML report, and as warnings in the console
+output. 
+-- Initial support for 1000G naming convention on SNPs (e.g. chr4:3939393) when using
+-s, --snp, and --snpfile
+
+Changes: 
+-- Setup script now checks to make sure python version is correct before
+attempting to install
+-- User requested genes (-g, --genes) are now properly included in the HTML
+report
+-- Snipper now informs the user where the HTML report has been written at the
+end of the console output
+-- README.txt in output folder now includes the command line used to run
+Snipper
+-- The "region table" in the gene information section now lists genes
+separately for nearby genes and eQTL genes, and also orders them by their
+position in the genome. 
+-- The user is now warned if the number of genes seems excessive and may cause
+long runtimes or memory usage 
+-- Fixed unclear text regarding whether certain settings were enabled (--omim,
+--generif, --pubmed, etc.) 
+-- Input information report now includes the build that was used to find the
+position of genes and SNPs
+-- GPL license now included in distribution
+-- Many documentation updates including new format of HTML output, updates to
+the options table to include new options
+
+Bugs: 
+-- Fixed a big where search terms that had spaces would sometimes not be
+correctly identified as one whole word. Note that --terms should be enclosed
+in quotations, for example: --terms "type 2 diabetes, metabolic syndrome"
+-- Fixed a bug where not all genes were found near a SNP if two transcripts
+occurred on opposite strands 
+-- Fixed a bug where running -g with only 1 gene would cause a crash in some
+cases
+-- Fixed paper references in OMIM text from having strange formatting
+-- Fixed OMIM ID references in OMIM text to now link directly to the OMIM
+article itself (formatting has been fixed as well)
+-- Fixed dead "index" link in upper-right section of report. This feature may
+return in the future when an index is actually built. :) 
+
+1.1 Release (11/10/2010):
+-------------------------
+New features:
+-- Added HTML output, replacing console output as default (use --no-html to get console output back) 
+-- Added support for querying SCAN database of eQTLs 
+-- Added support for querying MiMI database of gene/protein interactions
+
+Changes:
+-- Snipper now requires the python package "sphinx" - the setup script has been updated to install this automatically 
+-- Setup script now only downloads SNP position information if a newer version of the table is available
+-- Snipper is now bundled with database by default (data/genome/*). This reduces the overhead of the user having to rebuild
+it upon each installation. However, if a new SNP position table is available at UCSC for the current huamn genome build, 
+the setup script will download it and re-create the database. This process can take a very long time, unfortunately. 
+-- All databases are now enabled by default, --all is no longer necessary, and individual databases can be disabled by using
+--no-scandb, --no-mimi, etc (see docs.) 
+-- The -o parameter has been changed to specify a directory for writing HTML output to (see docs.) 
+
+Bugs: 
+-- Fixed yet another crash caused by PubMed unicode author names.
+
+1.0 Release (10/14/2009):
+-------------------------
+Public release
+
+0.8.2 (11/4/2008):
+------------------
+Bugs:
+-- Fixed a bug when attempting to download a very large number of Pubmed articles. 
+
+Changes:
+-- Optimized XML parsing procedure, speedup is significant for large sets of SNPs or genes
+
+0.7.5 (01/30/2008):
+-------------------
+Bugs: 
+-- Fixed a really obscure Pubmed double-query bug
+-- Fixed issue where in certain cases Pubmed was being queried for more articles than desired (results in slight speedup)
+-- Fixed bug where search terms listed in gene printout were sometimes repeated
+-- Fixed bug where pubmed articles matching search terms was not being printed in the gene printout under "Search terms matched:"
+-- Fixed rare bug where pubmed articles were not being sorted properly (NCBI pubmed date disagreed with journal pub date)
+
+Changes: 
+-- Pubmed search behavior changed to search articles by 1) gene <--> pubmed database links, and 2) a normal Pubmed search (new)
+-- Default # of pubmed articles returned is now 10
+-- The --pnum argument is now --papernum to avoid confusion with p-value
+-- Changed format of -h to be a little more roomy. 
+-- Added an example of what happens when you specify search terms using --terms to -h.  
+-- Added an example of what happens when you include --each-term along with --terms to -h. 
+
+0.7.4 (01/15/2008):
+-------------------
+Bugs:
+- Fixed bug where search terms were matching inside other words, such as "fat" in "sulfate"
+- Fixed bug where # of search terms in summary table was actually the # of places the terms matched
+
+0.7.3 (12/15/2007):
+-------------------
+Bugs:
+- Fixed bug where entire OMIM record was not being searched, only the description text. 
+
+0.7.2 (12/11/2007):
+-------------------
+Bugs: 
+- Fixed a bug in searching gene information when no OMIM text was present. 
+
+Additions/changes: 
+- Added -o option for writing information to a text file. This should be used in place of the unix > operator. This was necessary after adding support in 0.7.1 for autodetecting the terminal width. Basically, if you use > and your terminal width is rather large, the results that get written to file are too large to be line wrapped correctly. Using -o "file.txt" will write the results to the file "file.txt" and wrap lines to 80 columns which works much better for printing or viewing on different sized terminals. 
+
+0.7.1 (12/5/2007):
+------------------
+Bugs: 
+- None I'm aware of.. 
+
+Additions/changes: 
+- Added the location of where the search terms matched in the gene information (if it isn't specific enough, let me know!)
+- Added support for loading/displaying GeneRIFs - this is enabled by --generif or --all. This isn't demanding on the program, but for some genes it can print a LOT of info. 
+- Added "delimiter" at the beginning of each gene information section so they are easier to see
+- Added newline between some of the gene sections to help readability
+- Added more references to gene symbol in GeneRIF, Pubmed, and OMIM sections since they are farther down the page and it could become confusing as to which gene is currently being looked at
+- Added auto-detection of terminal width for line wrapping text, it will no longer auto-wrap to 80 chars/line
+- Added support for searching Pubmed articles linked to the gene. If you specify search terms, the default behavior is now to glob them all together when searching Pubmed. For example: 
+
+Gene: RB1
+Search terms: "pinealoma, retinoblastoma" 
+Search query in English: find all articles linked to gene RB1 that contain pinealoma OR retinoblastoma
+What is printed: all articles that matched either pinealoma or retinoblastoma for gene RB1
+
+If you specify --each-term, it will search each gene/search term combination, i.e.:  
+
+Gene: RB1
+Search terms: "pinealoma, retinoblastoma" 
+Search query in English: find all articles for RB1 and pinealoma, find all articles for RB1 and retinoblastoma
+What is printed: all articles that matched RB1 and pinealoma, all articles that matched RB1 and retinoblastoma
+
+WARNING: If you have a lot of genes, this can take a REALLY long time - NCBI requires me to wait 3 seconds per request. If you specify --each-term, it will print a warning message and you must confirm by typing 'y' and hitting ENTER in order to proceed. If this gets annoying, I can set a threshold for this message to appear - say if the time required would exceed 5 minutes. Any suggestions here are welcome. 
+
+- Added --pnum option: allows you to specify how many pubmed articles you'd like to see. The default remains 5 articles. 
+
+0.6.4 (11/19/2007):
+-------------------
+Bugs: 
+- Fixed bug where -d could only be specified in integer units, now can be a float (so you can enter 0.5 megabases for 500kb, for example.) 
+
+Additions/changes:
+- Default distance changed from 5 MB to 1 MB to prevent accidentally pulling out a huge number of genes. 
+- Specifying -d with no accompanying -n argument will search the distance for ALL genes. WARNING: if you specify a large range (say 2 MB), this can return a huge number of genes! Therefore, if you still want to search a large span, but don't want many genes coming back, use -n <number of genes> along with -d. 
+- Made the program slightly more verbose in what it is currently doing. None of this information will be written to an output file when using `>`. If you want all program information written to file, use `>&` for tcsh shell or `1>file 2>file` for bash. 
+- Genes are written out in "closest SNP order." Genes with SNPs inside of them are written first, and then subsequently in ascending order of distance to nearest SNP. 
+- Changed "Associated SNPs" output to contain unit of distance, as well as directionality (upstream,downstream,etc.)
+- Changed summary table to only display pubmed article # and term # if they were specified
+- If program is run without arguments at all, a message is displayed instead of a nasty exception/stack trace. 
+
+0.6.3 (11/18/2007):
+-------------------
+Bugs:
+- Fixed a bug where some genes would be dropped when a large number of genes were requested (>80)
+- Fixed NCBI returning discontinued gene records which were overriding the true, new gene record
+- Fixed SNP distances not sorting correctly (sorted by ASCII not by integer, whoops..) 
+
+0.6 (11/15/2007):
+-----------------
+* Initial beta release. 

@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -rf small_test
+../bin/snipper.py --debug -s "rs7903146" -n 1 -o small_test

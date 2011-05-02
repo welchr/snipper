@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -rf medium_test
+../bin/snipper.py -s "rs7903146" -r chrX:70,608,087-70,685,854 -g "JAZF1,PDE8B,LOC143188,DUSP9,LOC100128551" -o genes_test --terms "type 2 diabetes,glucose,insulin" --scandb-pval 0.0001 
