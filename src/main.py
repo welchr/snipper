@@ -383,7 +383,6 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
     html_path
   ];
   
-  # sphinx_build(shlex.split(args)); # doesn't work in Windows
   print "Creating HTML report using Sphinx..";
   mute_std();
   

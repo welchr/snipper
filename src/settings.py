@@ -133,7 +133,7 @@ def parseRegions(regions_string):
   
   return regions;
 
-def find_relative(file):
+def findRelative(file):
   full_path = None;
   
   # Find the root, using the script's location. 
@@ -460,7 +460,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
               );
 
     # Get database file information. 
-    db_file = find_relative(parser.get(build,'db_file'));
+    db_file = findRelative(parser.get(build,'db_file'));
     if db_file == None:
       sys.exit("Error: could not find database file %s. Please check to make "
                 "sure this file exists, or that the path is specified "
