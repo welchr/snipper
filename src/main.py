@@ -82,7 +82,7 @@ def print_genes_per_snp(out,gene_symbols):
 
   print >> out, "";
 
-def print_summary(out,gene_symbols):
+def print_summary(settings,out,gene_symbols):
   # Create the format string. 
   format_string = "%-10s %-9s";
 
@@ -287,6 +287,7 @@ def run_snipper(settings):
     );
   else:
     make_console(
+      settings,
       gene_symbols,
       scandb_results,
       direct_ints
@@ -377,10 +378,11 @@ def make_text(settings,gene_symbols,scandb_results,direct_ints):
   # Create directory for rst files. 
   text_path = os.path.join(dir_path,"text");
   os.mkdir(text_path);
-  out = os.path.join(text_path,"snipper_results.txt");
+  
+  out = open(os.path.join(text_path,"snipper_results.txt"),'w');
   
   # Print our summary table. 
-  print_summary(out,gene_symbols);
+  print_summary(settings,out,gene_symbols);
   
   # Print gene symbols on per SNP basis. 
   print >> out, "";
@@ -397,13 +399,13 @@ def make_text(settings,gene_symbols,scandb_results,direct_ints):
   # Finally, print the information.
   Gene.writeAll(gene_symbols,out);
   
-def make_console(gene_symbols,scandb_results,direct_ints):
+def make_console(settings,gene_symbols,scandb_results,direct_ints):
   # Print our summary table.  
   print >> sys.stderr, "";
   print_sep(sys.stderr);
   print "";
   print >> sys.stderr, "Summary information: \n";
-  print_summary(sys.stdout,gene_symbols);
+  print_summary(settings,sys.stdout,gene_symbols);
   
   # Print gene symbols on per SNP basis. 
   print >> sys.stderr, "";
@@ -421,13 +423,13 @@ def make_console(gene_symbols,scandb_results,direct_ints):
     print >> sys.stderr, "Direct interactions detected between genes near any given SNP:";
     print "";
       
-    print_interactions(direct_ints,sys.stdout);
+    print_interactions(sys.stdout,direct_ints);
     
     if len(settings.terms) > 0:
       run_search_interactions(direct_ints,settings.terms,sys.stdout);
 
   # Finally, print the information.
-  Gene.writeAll(gene_symbols,out);
+  Gene.writeAll(gene_symbols,sys.stdout);
 
 def write_rest_input(settings,out=sys.stdout):
   print >> out, "User Input and Settings";

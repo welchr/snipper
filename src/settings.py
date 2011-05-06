@@ -191,7 +191,7 @@ class Settings:
     self.scandb = True;             # search scandb for eqtls?
     self.scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
     self.mimi = True;               # search MiMi for interactions between genes?
-    self.outdir = None;             # output directory
+    self.outdir = "snipper_report"; # output directory
     self.console = False;           # write text output directly to console
     self.db_file = None;            # database file for snp positions & genes
     self.build = None;              # human genome build for snp/gene positions
@@ -280,8 +280,8 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     
     parser.add_option("--each-term",dest="per_term",default=False,action="store_true",help=each_term_help);
     parser.add_option("--all",dest="all",action="store_true",default=True,help=SUPPRESS_HELP);
-    parser.add_option("-o","--out",dest="outdir",default="",help="Directory to use for storing output. This should be a directory that does not exist yet.");
-    parser.add_option("--console",dest="console",action="store_true",help="Disable creating a directory of output, instead write textual output to console.");
+    parser.add_option("-o","--out",dest="outdir",default=self.outdir,help="Directory to use for storing output. This should be a directory that does not exist yet.");
+    parser.add_option("--console",dest="console",action="store_true",default=self.console,help="Disable creating a directory of output, instead write textual output to console.");
     parser.add_option("--debug",dest="debug",action="store_true",default=False,help=SUPPRESS_HELP);
 
     # Parse args. 
@@ -304,6 +304,9 @@ If you have a very large set of genes and search terms, this can take a VERY lon
       self.mode = 'gene';
     else:
       sys.exit("Error: at least one of --snp, --gene, or --regions must be supplied.");
+
+    # Output? 
+    self.console = options.console;
 
     # Human genome build. 
     if options.build:
@@ -368,14 +371,15 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     
     # Check the output directory specified by the user.
     # It should not already exist. 
-    self.outdir = options.outdir;
-    if os.path.exists(self.outdir):
-      msg = "Error: output directory already exists: %s\n"\
-            "Please rename or move this directory, or use "\
-            "--output or -o to change the directory name." % dir_name;
-      die(msg);
-    else:
-      mkpath(self.outdir);
+    if not self.console:
+      self.outdir = options.outdir;
+      if os.path.exists(self.outdir):
+        msg = "Error: output directory already exists: %s\n"\
+              "Please rename or move this directory, or use "\
+              "--output or -o to change the directory name." % dir_name;
+        die(msg);
+      else:
+        mkpath(self.outdir);
       
     # Was debug enabled?
     if options.debug:
