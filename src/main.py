@@ -82,9 +82,7 @@ def print_genes_per_snp(out,gene_symbols):
 
   print >> out, "";
 
-def print_summary(settings,gene_symbols):
-  out = settings.output_file;
-
+def print_summary(out,gene_symbols):
   # Create the format string. 
   format_string = "%-10s %-9s";
 
@@ -159,7 +157,7 @@ def get_current_snps(snp_list,db_file):
   return (new_list,d);
 
 def run_snipper(settings):
-  output_file = settings.output_file;
+  outdir = settings.outdir;
   user_genes = settings.genes;
   
   # Build. Make sure the user knows it. 
@@ -272,8 +270,8 @@ def run_snipper(settings):
 #  ranker.setInteractionDB(direct_ints);
 #  gene_symbols = ranker.rank_genes(gene_symbols);
 
-  # If we're in HTML mode, write that version of the report. 
-  if settings.html:
+  # Write to console, or write to disk? 
+  if not settings.console:
     make_rest(
       get_core_path(),
       settings,
@@ -281,52 +279,22 @@ def run_snipper(settings):
       scandb_results,
       direct_ints
     );
+    make_text(
+      settings,
+      gene_symbols,
+      scandb_results,
+      direct_ints
+    );
   else:
-    # Console output. 
-    # Print our summary table. 
-    if output_file == sys.stdout: 
-      print >> sys.stderr, "";
-      print_sep(sys.stderr);
-      print "";
-      print >> sys.stderr, "Summary information: \n";
-    print_summary(settings,gene_symbols);
-    
-    # Print gene symbols on per SNP basis. 
-    if output_file == sys.stdout:
-      print >> sys.stderr, "";
-      print_sep(sys.stderr);
-      print "";
-      print >> sys.stderr, "Genes and their aliases near each SNP: ";
-      print "";
-    else:
-      print >> output_file, "";
-    print_genes_per_snp(output_file,gene_symbols);
-  
-    # Print direct interactions between genes. 
-    if direct_ints != None and direct_ints.has_gene_interactions():
-      if output_file == sys.stdout:
-        print >> sys.stderr, "";
-        print_sep(sys.stderr);
-        print "";
-        print >> sys.stderr, "Direct interactions detected between genes near any given SNP:";
-        print "";
-      else:
-        print >> output_file, "";
-        
-      print_interactions(direct_ints,output_file);
-      
-      if len(settings.terms) > 0:
-        run_search_interactions(direct_ints,settings.terms,output_file);
-  
-    # Finally, print the information.
-    if output_file == sys.stdout: 
-      pass
-      #print >> sys.stderr, "";
-    Gene.writeAll(gene_symbols,output_file);
+    make_console(
+      gene_symbols,
+      scandb_results,
+      direct_ints
+    );
 
 def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
   # Directory path to write ReST and HTML files. 
-  dir_path = settings.getRestDir();
+  dir_path = settings.outdir;
   
   # Create directory for rst files. 
   rst_path = os.path.join(dir_path,"rst");
@@ -402,6 +370,64 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
   
   report_index = os.path.join(html_path,"index.html");
   print "Please open %s to view the report." % report_index;
+
+def make_text(settings,gene_symbols,scandb_results,direct_ints):
+  dir_path = settings.outdir;
+  
+  # Create directory for rst files. 
+  text_path = os.path.join(dir_path,"text");
+  os.mkdir(text_path);
+  out = os.path.join(text_path,"snipper_results.txt");
+  
+  # Print our summary table. 
+  print_summary(out,gene_symbols);
+  
+  # Print gene symbols on per SNP basis. 
+  print >> out, "";
+  print_genes_per_snp(out,gene_symbols);
+
+  # Print direct interactions between genes. 
+  if direct_ints != None and direct_ints.has_gene_interactions():
+    print >> out, "";  
+    print_interactions(out,direct_ints);
+    
+    if len(settings.terms) > 0:
+      run_search_interactions(direct_ints,settings.terms,out);
+
+  # Finally, print the information.
+  Gene.writeAll(gene_symbols,out);
+  
+def make_console(gene_symbols,scandb_results,direct_ints):
+  # Print our summary table.  
+  print >> sys.stderr, "";
+  print_sep(sys.stderr);
+  print "";
+  print >> sys.stderr, "Summary information: \n";
+  print_summary(sys.stdout,gene_symbols);
+  
+  # Print gene symbols on per SNP basis. 
+  print >> sys.stderr, "";
+  print_sep(sys.stderr);
+  print "";
+  print >> sys.stderr, "Genes and their aliases near each SNP: ";
+  print "";
+  print_genes_per_snp(sys.stdout,gene_symbols);
+
+  # Print direct interactions between genes. 
+  if direct_ints != None and direct_ints.has_gene_interactions():
+    print >> sys.stderr, "";
+    print_sep(sys.stderr);
+    print "";
+    print >> sys.stderr, "Direct interactions detected between genes near any given SNP:";
+    print "";
+      
+    print_interactions(direct_ints,sys.stdout);
+    
+    if len(settings.terms) > 0:
+      run_search_interactions(direct_ints,settings.terms,sys.stdout);
+
+  # Finally, print the information.
+  Gene.writeAll(gene_symbols,out);
 
 def write_rest_input(settings,out=sys.stdout):
   print >> out, "User Input and Settings";
@@ -708,7 +734,7 @@ def write_rest_ints(inters,out=sys.stdout):
     print >> out, "No direct interactions found.";
     print >> out, "";
   
-def print_interactions(inters,out=sys.stdout):
+def print_interactions(out,inters):
   for i in inters.iter_gene_interactions():
     print >> out, str(i);
 
@@ -728,7 +754,7 @@ def run_search_interactions(inters,terms,out=sys.stdout):
   print >> out, "";
   return results;
 
-def print_sep(out=sys.stdout):
+def print_sep(out):
   term_width = terminal_size()[0];
   if out not in (sys.stdout,sys.stderr): 
     term_width = 80;

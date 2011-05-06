@@ -191,11 +191,8 @@ class Settings:
     self.scandb = True;             # search scandb for eqtls?
     self.scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
     self.mimi = True;               # search MiMi for interactions between genes?
-    self.output_file = None;        # output file
-    self.html = True;               # write HTML as output? 
-    self.text = True;               # write text output? 
-    self.rst = True;                # write ReST output?
-    self.pdf = False;               # write PDF output (experimental)
+    self.outdir = None;             # output directory
+    self.console = False;           # write text output directly to console
     self.db_file = None;            # database file for snp positions & genes
     self.build = None;              # human genome build for snp/gene positions
     self.valid_builds = set();      # builds available for use (conf file)
@@ -208,14 +205,6 @@ class Settings:
         self.write();
     except:
       pass
-
-  def getRestDir(self):
-    if self.output_file not in ("",None):
-      dir_name = os.path.splitext(self.output_file)[0];
-    else:
-      dir_name = "snipper_report";
-    
-    return dir_name;
 
   def getCmdLine(self):
     parser = VerboseParser();
@@ -291,126 +280,108 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     
     parser.add_option("--each-term",dest="per_term",default=False,action="store_true",help=each_term_help);
     parser.add_option("--all",dest="all",action="store_true",default=True,help=SUPPRESS_HELP);
-    parser.add_option("-o","--out",dest="output_file",default="",help="Directory to use for storing HTML output. If running with --no-html, this is a file that contains the console output.");
-    parser.add_option("--no-html",action="store_true",default=False,help="Disable writing HTML and instead write directly to console.");
+    parser.add_option("-o","--out",dest="outdir",default="",help="Directory to use for storing output. This should be a directory that does not exist yet.");
+    parser.add_option("--console",dest="console",action="store_true",help="Disable creating a directory of output, instead write textual output to console.");
     parser.add_option("--debug",dest="debug",action="store_true",default=False,help=SUPPRESS_HELP);
 
-    # If there are no command line arguments, use interactive input. 
-    if len(sys.argv) < 2:
-      pass
-      #(snpset,distance,num_genes,terms) = askUser();
+    # Parse args. 
+    (options,args) = parser.parse_args();
+
+    # If there are positional arguments, there was an error on the command line. 
+    # Let them know the potential problem. 
+    if len(args) > 0:
+      print >> sys.stderr, "Error: positional arguments detected: " + str(args);
+      print >> sys.stderr, "Most likely, you simply forgot to surround the entire argument in quotes."
+      print >> sys.stderr, "Example: -g \"RB1, TCF7L2\" is correct, whereas -g \"RB1\" \"TCF7L2\" is wrong."
+      sys.exit(1);
+
+    # Discover mode of operation. 
+    if options.snpfile != None or options.snp != None:
+      self.mode = 'snp';
+    elif options.regions != None and len(options.regions) > 0:
+      self.mode = 'snp';
+    elif options.gene != None:
+      self.mode = 'gene';
     else:
-      # Parse args. 
-      (options,args) = parser.parse_args();
+      sys.exit("Error: at least one of --snp, --gene, or --regions must be supplied.");
 
-      # If there are positional arguments, there was an error on the command line. 
-      # Let them know the potential problem. 
-      if len(args) > 0:
-        print >> sys.stderr, "Error: positional arguments detected: " + str(args);
-        print >> sys.stderr, "Most likely, you simply forgot to surround the entire argument in quotes."
-        print >> sys.stderr, "Example: -g \"RB1, TCF7L2\" is correct, whereas -g \"RB1\" \"TCF7L2\" is wrong."
-        sys.exit(1);
+    # Human genome build. 
+    if options.build:
+      self.checkBuild(options.build);
+      self.build = options.build;
+      self.getDB(options.build);
 
-      # Discover mode of operation. 
-      if options.snpfile != None or options.snp != None:
-        self.mode = 'snp';
-      elif options.regions != None and len(options.regions) > 0:
-        self.mode = 'snp';
-      elif options.gene != None:
-        self.mode = 'gene';
+    # Get genes from command line (and file, if specified.) 
+    if options.gene != None:
+      self.genes = set([i.upper() for i in parseTerms(options.gene)]);
+    if options.genefile != None:
+      self.genes.update(parseGeneFile(options.genefile));
+
+    # Get the set of SNPs. 
+    if options.snp != None:
+      self.snpset = set(parseTerms(options.snp));
+    if options.snpfile != None:
+      self.snpset.update(parseSNPFile(options.snpfile));
+
+    # Get regions. 
+    if options.regions != None:
+      self.regions = parseRegions(options.regions);
+
+    # Get list of search terms. 
+    if options.terms != None:
+      self.terms = parseTerms(options.terms);
+
+    # HACK: If distance is specified, but num_genes is not,
+    # then we want to search for all genes in that distance space. 
+    # Set num_genes to a really really big number. :) 
+    if options.distance != None:
+      options.distance = convertFlank(options.distance);
+      if options.num_genes != None:
+        self.distance = options.distance;
+        self.num_genes = options.num_genes;
       else:
-        sys.exit("Error: at least one of --snp, --gene, or --regions must be supplied.");
+        self.distance = options.distance;
+        self.num_genes = 9999;
+    else:
+      if options.num_genes != None:
+        self.num_genes = options.num_genes;
 
-      # Human genome build. 
-      if options.build:
-        self.checkBuild(options.build);
-        self.build = options.build;
-        self.getDB(options.build);
+    # OMIM? 
+    self.omim = not options.omim;
 
-      # Get genes from command line (and file, if specified.) 
-      if options.gene != None:
-        self.genes = set([i.upper() for i in parseTerms(options.gene)]);
-      if options.genefile != None:
-        self.genes.update(parseGeneFile(options.genefile));
+    # Pubmed?
+    self.pubmed = not options.pubmed;
+    self.pnum = options.pnum; 
+    self.per_term = options.per_term;
 
-      # Get the set of SNPs. 
-      if options.snp != None:
-        self.snpset = set(parseTerms(options.snp));
-      if options.snpfile != None:
-        self.snpset.update(parseSNPFile(options.snpfile));
+    # GeneRIF? 
+    self.gene_rif = not options.gene_rif;
+    
+    # ScanDB?
+    if options.no_scandb:
+      self.scandb = False;
+    else:
+      self.scandb_pval = float(options.scandb_pval);
 
-      # Get regions. 
-      if options.regions != None:
-        self.regions = parseRegions(options.regions);
-
-      # Get list of search terms. 
-      if options.terms != None:
-        self.terms = parseTerms(options.terms);
-
-      # HACK: If distance is specified, but num_genes is not,
-      # then we want to search for all genes in that distance space. 
-      # Set num_genes to a really really big number. :) 
-      if options.distance != None:
-        options.distance = convertFlank(options.distance);
-        if options.num_genes != None:
-          self.distance = options.distance;
-          self.num_genes = options.num_genes;
-        else:
-          self.distance = options.distance;
-          self.num_genes = 9999;
-      else:
-        if options.num_genes != None:
-          self.num_genes = options.num_genes;
-
-      # OMIM? 
-      self.omim = not options.omim;
-
-      # Pubmed?
-      self.pubmed = not options.pubmed;
-      self.pnum = options.pnum; 
-      self.per_term = options.per_term;
-
-      # GeneRIF? 
-      self.gene_rif = not options.gene_rif;
+    # MIMI?
+    self.mimi = not options.mimi;
+    
+    # Check the output directory specified by the user.
+    # It should not already exist. 
+    self.outdir = options.outdir;
+    if os.path.exists(self.outdir):
+      msg = "Error: output directory already exists: %s\n"\
+            "Please rename or move this directory, or use "\
+            "--output or -o to change the directory name." % dir_name;
+      die(msg);
+    else:
+      mkpath(self.outdir);
       
-      # ScanDB?
-      if options.no_scandb:
-        self.scandb = False;
-      else:
-        self.scandb_pval = float(options.scandb_pval);
-
-      # MIMI?
-      self.mimi = not options.mimi;
-      
-      if options.no_html != None and options.no_html:
-        self.html = False;
-      else:
-        self.html = True;
-      
-      # Should we write to an output file? And are we in HTML mode? 
-      self.output_file = options.output_file;
-      if not self.html:
-        if options.output_file != "":
-          f = open(options.output_file,"w");
-          self.output_file = f;
-        else:
-          self.output_file = sys.stdout;
-        
-      if self.html:
-        dir_name = self.getRestDir(); # checks ReST directory for validity
-        if os.path.exists(dir_name):
-          msg = "Error: output directory already exists: %s\n"\
-                "Please rename or move this directory, or use "\
-                "--output or -o to change the directory name." % dir_name;
-          die(msg);
-        else:
-          mkpath(dir_name);
-        
-      # Was debug enabled?
-      if options.debug:
-        __builtin__._SNIPPER_DEBUG = True;
-      else:
-        __builtin__._SNIPPER_DEBUG = False;
+    # Was debug enabled?
+    if options.debug:
+      __builtin__._SNIPPER_DEBUG = True;
+    else:
+      __builtin__._SNIPPER_DEBUG = False;
 
   # Check that we have info for the given build. 
   def checkBuild(self,build):
