@@ -32,25 +32,6 @@ import os.path as path
 import re
 import __builtin__
 
-# Extract search terms from a string argument. 
-# Expects a string with sensible terms delimited by commas. 
-# This method is tolerant to whitespace surrounding terms, but not within terms.
-#def parseTerms(term_string):
-#  final_terms = list();
-#
-#  # First, split by comma. 
-#  pieces = term_string.split(",");
-#
-#  # For each piece, strip whitespace surrounding the element. 
-#  pattern = re.compile("^\s*(.+?)\s*$");
-#  for p in pieces:
-#    result = pattern.search(p);
-#    if result != None:
-#      term = result.groups()[0];
-#      final_terms.append(term);
-#
-#  return final_terms;
-
 def parseTerms(term_string):
   terms = [];
   for term in term_string.split(","):
@@ -193,19 +174,18 @@ def findConfigFile():
   raise RuntimeError, err_msg;
 
 # Class to keep track of program settings. 
-@singleton
 class Settings:
   def __init__(self):
     self.mode = None;               # mode of operation (gene,snp)
     self.snpset = set();            # set of SNPs
     self.genes = set();             # set of genes
     self.regions = [];              # list of chromosomal regions
-    self.distance = None;           # distance to search near SNPs
-    self.num_genes = None;          # number of genes to return per SNP
+    self.distance = 250000;         # distance to search near SNPs
+    self.num_genes = 9999;          # number of genes to return per SNP
     self.terms = set();             # search terms
     self.omim = True;               # use OMIM?
     self.pubmed = True;             # search pubmed?
-    self.pnum = None;               # number of pubmed articles to return
+    self.pnum = 10;                 # number of pubmed articles to return
     self.per_term = False;          # complicated, see help for info
     self.gene_rif = True;           # use gene rifs?
     self.scandb = True;             # search scandb for eqtls?
@@ -213,14 +193,16 @@ class Settings:
     self.mimi = True;               # search MiMi for interactions between genes?
     self.output_file = None;        # output file
     self.html = True;               # write HTML as output? 
+    self.text = True;               # write text output? 
+    self.rst = True;                # write ReST output?
+    self.pdf = False;               # write PDF output (experimental)
     self.db_file = None;            # database file for snp positions & genes
     self.build = None;              # human genome build for snp/gene positions
-    self.email = None;              # user email address for NCBI queries
+    self.valid_builds = set();      # builds available for use (conf file)
 
-    conf = findConfigFile();
-    self._getCommandLine();
-    self._getConfigFile(conf);
-    
+    self.conf = findConfigFile();
+    self.getConfigFile(self.conf);
+      
     try:
       if _SNIPPER_DEBUG: 
         self.write();
@@ -235,7 +217,7 @@ class Settings:
     
     return dir_name;
 
-  def _getCommandLine(self):
+  def getCmdLine(self):
     parser = VerboseParser();
 
     # Remember: default action is store, default type is string. 
@@ -268,12 +250,12 @@ class Settings:
                   "yourself using the bin/setup_snipper.py script.");
     parser.add_option("-b","--build",dest="build",help=build_help);
 
-    dist_help = "Distance away from SNP to search, default is " + str(DEFAULT_DISTANCE) + ". " +\
+    dist_help = "Distance away from SNP to search, default is " + str(self.distance) + ". " +\
       "If a distance is specified, the program will return *ALL* genes within the distance you specify, not just the default of 1. " +\
       "To specify a new distance, but still only return 1 gene (or arbitrary number of genes), use -n <number>. " +\
       "Distances can be specified using a kb or mb suffix, or as a raw distance. Examples: 500kb, 0.5MB, 1.4MB, 834141.";
     parser.add_option("-d",dest="distance",help=dist_help,type="string");
-    parser.add_option("-n",dest="num_genes",help="Number of genes to return per SNP, default is " + str(DEFAULT_NUMGENES),type="int");
+    parser.add_option("-n",dest="num_genes",help="Number of genes to return per SNP, default is " + str(self.num_genes),type="int");
     
     terms_help = "Comma-delimited string of terms, enclosed in quotes, to use in searching the literature. \
   This will execute a search, per gene, for any of the search terms. For example:\n\
@@ -291,7 +273,7 @@ class Settings:
     parser.add_option("--no-mimi",dest="mimi",action="store_true",default=False,help="Disable querying of MiMI database for interactions between genes near SNPs.");
     parser.add_option("--no-omim",dest="omim",action="store_true",default=False,help="Disable display and search of OMIM text.");
     parser.add_option("--no-pubmed",dest="pubmed",action="store_true",default=False,help="Disable searching PubMed.");
-    parser.add_option("--papernum",dest="pnum",default=DEFAULT_PAPERNUM,type="int",help="Number of papers to display, default is " + str(DEFAULT_PAPERNUM));
+    parser.add_option("--papernum",dest="pnum",type="int",default=self.pnum,help="Number of papers to display, default is " + str(self.pnum));
     
     each_term_help = "When specified, the program will search each gene x searchterm pair, instead of lumping together search terms. \
   For example:\n\
@@ -340,7 +322,10 @@ If you have a very large set of genes and search terms, this can take a VERY lon
         sys.exit("Error: at least one of --snp, --gene, or --regions must be supplied.");
 
       # Human genome build. 
-      self.build = options.build;
+      if options.build:
+        self.checkBuild(options.build);
+        self.build = options.build;
+        self.getDB(options.build);
 
       # Get genes from command line (and file, if specified.) 
       if options.gene != None:
@@ -362,12 +347,6 @@ If you have a very large set of genes and search terms, this can take a VERY lon
       if options.terms != None:
         self.terms = parseTerms(options.terms);
 
-      # Distance. 
-      self.distance = DEFAULT_DISTANCE;
-
-      # Number of genes per SNP. 
-      self.num_genes = DEFAULT_NUMGENES;
-
       # HACK: If distance is specified, but num_genes is not,
       # then we want to search for all genes in that distance space. 
       # Set num_genes to a really really big number. :) 
@@ -388,7 +367,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
 
       # Pubmed?
       self.pubmed = not options.pubmed;
-      self.pnum = options.pnum;
+      self.pnum = options.pnum; 
       self.per_term = options.per_term;
 
       # GeneRIF? 
@@ -433,24 +412,11 @@ If you have a very large set of genes and search terms, this can take a VERY lon
       else:
         __builtin__._SNIPPER_DEBUG = False;
 
-  # Load Snipper settings specified in conf file. 
-  def _getConfigFile(self,file):
+  # Check that we have info for the given build. 
+  def checkBuild(self,build):
     parser = ConfigParser();
-    parser.read(file);
-
-    # Get default build from config file. 
-    try:
-      default_build = parser.get('program','default_build');
-    except:
-      sys.exit("Error: default_build does not exist in conf. Should be under section [program].")
-      
-    build = None;
-    if self.build != None:
-      build = self.build;
-    else:
-      build = default_build;
-      self.build = default_build;
-
+    parser.read(self.conf);
+    
     # Check to see if user's requested build is in conf file. 
     if not parser.has_section(build):
       sys.exit("Error: the human genome build you have requested does not "
@@ -459,6 +425,10 @@ If you have a very large set of genes and search terms, this can take a VERY lon
                 "database file from our website. "
               );
 
+  def getDB(self,build):
+    parser = ConfigParser();
+    parser.read(self.conf);
+    
     # Get database file information. 
     db_file = findRelative(parser.get(build,'db_file'));
     if db_file == None:
@@ -475,13 +445,27 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     else:
       self.db_file = db_file;
 
-#    # User's email address. 
-#    try:
-#      self.email = parser.get('user','email');
-#    except:
-#      sys.exit("Error: could not find your email address in the conf file. "
-#               "Did you run the setup script? ");
+  # Load Snipper settings specified in conf file. 
+  def getConfigFile(self,file):
+    parser = ConfigParser();
+    parser.read(file);
 
+    # Get default build from config file. 
+    try:
+      self.build = parser.get('program','default_build');
+    except:
+      sys.exit("Error: default_build does not exist in conf. Should be under section [program].")
+    
+    # Check build. 
+    self.checkBuild(self.build);
+    
+    # Set DB file to default build. 
+    self.getDB(self.build);
+
+    # Set list of possible builds. 
+    for sec in parser.sections():
+      if "hg" in sec:
+        self.valid_builds.add(sec);
 
   # Print a summary of all current settings. 
   def write(self,out=sys.stdout):

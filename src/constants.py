@@ -21,15 +21,6 @@
 
 from util import convertFlank
 
-# Default distance to use, in megabases. 
-DEFAULT_DISTANCE = convertFlank('250kb');
-
-# Default number of genes to retrieve within a given distance (if any exist, that is.) 
-DEFAULT_NUMGENES = 9999;
-
-# Default number of pubmed articles to retrieve. 
-DEFAULT_PAPERNUM = 10;
-
 SCANDB_WEB_URL = "http://www.scandb.org/";
 SCANDB_PAPER_URL = "http://www.ncbi.nlm.nih.gov/pubmed/19933162";
 

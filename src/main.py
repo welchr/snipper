@@ -773,6 +773,7 @@ def print_sep(out=sys.stdout):
 # Main entry point. 
 def main(): 
   settings = Settings();
+  settings.getCmdLine();
   
   print_program_header();
 

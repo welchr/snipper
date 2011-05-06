@@ -29,10 +29,8 @@ from datetime import date,datetime
 from constants import *
 from BeautifulSoup import BeautifulStoneSoup
 from util import *
-from settings import Settings
 
 # NCBI query URLs.
-#EMAIL = Settings().email; 
 EMAIL = "welchr@umich.edu";
 EFETCH_URL = r"http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?tool=snipper&email=%s" % EMAIL;
 ESEARCH_URL = r"http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?tool=snipper&email=%s" % EMAIL;
@@ -140,7 +138,7 @@ def soupify(url):
   return soup;
 
 # Given a gene symbol and a search term, find pubmed article IDs that match both. 
-def naiveSearchArticlesByTerm(gene_symbol,term,pnum=DEFAULT_PAPERNUM):
+def naiveSearchArticlesByTerm(gene_symbol,term,pnum):
   # Run the search, find the article IDs.
   term = gene_symbol + "+AND+" + term;
   search_url = ESEARCH_URL + "&db=pubmed&term=" + term;
@@ -167,7 +165,7 @@ def naiveSearchArticlesByTerm(gene_symbol,term,pnum=DEFAULT_PAPERNUM):
 
 # Given a gene symbol and list of search terms, find pubmed article IDs that match the gene
 # and any of the search terms. 
-def naiveSearchArticlesAnyTerm(gene_symbol,terms,pnum=DEFAULT_PAPERNUM):
+def naiveSearchArticlesAnyTerm(gene_symbol,terms,pnum):
   # Run the search, find the article IDs.
   term = gene_symbol + "+AND+" + "(" + "+OR+".join(terms) + ")";
   search_url = ESEARCH_URL + "&db=pubmed&term=" + term;

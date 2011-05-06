@@ -870,7 +870,7 @@ class Gene:
   # Load Pubmed information for specified genes. 
   # If the genes have not been populated previously, they will be after this call. 
   @staticmethod 
-  def loadPubmed(symbols=set(),terms=set(),pnum=DEFAULT_PAPERNUM,per_term=False):
+  def loadPubmed(symbols=set(),terms=set(),pnum,per_term=False):
     if not isIterable(symbols):
       raise ValueError, "Contact developer.";
   
