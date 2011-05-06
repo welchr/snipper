@@ -642,6 +642,10 @@ rst/
 ----
 This directory contains the source files used to generate the HTML output. These files may be useful to users familiar with the ReST markup language.
 
+text/
+-----
+This directory contains a textual output file (also what would have been printed had snipper been run with --console.) This file could be useful for parsing information, but is not as useful for reading as the html report. 
+
 Command line
 ------------
 Snipper was executed with the following command: %s
