@@ -176,7 +176,6 @@ def findConfigFile():
 # Class to keep track of program settings. 
 class Settings:
   def __init__(self):
-    self.mode = None;               # mode of operation (gene,snp)
     self.snpset = set();            # set of SNPs
     self.genes = set();             # set of genes
     self.regions = [];              # list of chromosomal regions
@@ -191,7 +190,7 @@ class Settings:
     self.scandb = True;             # search scandb for eqtls?
     self.scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
     self.mimi = True;               # search MiMi for interactions between genes?
-    self.outdir = "snipper_report"; # output directory
+    self.outdir = os.path.join(os.getcwd(),"snipper_report") ; # output directory
     self.console = False;           # write text output directly to console
     self.db_file = None;            # database file for snp positions & genes
     self.build = None;              # human genome build for snp/gene positions
