@@ -88,6 +88,33 @@ def parseGeneFile(absolute):
 
   return symbols;
 
+# Pull out genes, SNPs, and genomic regions from a file. 
+def parseGenericFile(file):
+  if not os.path.isfile(file):
+    raise Exception, "Could not find file: " + str(absolute);
+  
+  genes = set();
+  snps = set();
+  regions = set();
+  
+  f = open(file);
+  for line in f:
+    chunks = line.split();
+    for e in chunks:
+      if "rs" in e:
+        snps.add(e);
+      elif "chr" in e:
+        if "-" in e:
+          regions.add( ChromRegion.from_str(e) );
+        else:
+          snps.add(e);
+      else:
+        genes.add(e);
+  
+  f.close();
+  
+  return {'genes':genes,'snps':snps,'regions':regions};
+
 # Pulls out regions from a string of the form: 
 # chr4:1914-20104,chr8:939-93939,chrX:11738-234050
 def parseRegions(regions_string):
@@ -445,7 +472,6 @@ If you have a very large set of genes and search terms, this can take a VERY lon
   def write(self,out=sys.stdout):
     print >> out, "Snipper settings:";
     print >> out, "-----------------";
-    print >> out, "Mode: " + str(self.mode);
     print >> out, "Set of SNPs: " + str(self.snpset);
     print >> out, "Set of genes: " + str(self.genes);
     print >> out, "Distance: " + str(self.distance);
@@ -456,10 +482,10 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     print >> out, "Num articles: " + str(self.pnum);
     print >> out, "Per term: " + str(self.per_term);
     print >> out, "Use GeneRIF: " + str(self.gene_rif);
-    print >> out, "Output file: " + str(self.output_file);
+    print >> out, "Output directory: " + str(self.outdir);
     print >> out, "Build: " + str(self.build);
 
 if __name__ == "__main__":
-  settings = Settings();
-  settings.slurp();
-  settings.write();
+  pass
+  
+  

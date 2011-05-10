@@ -126,9 +126,15 @@ class ChromRegion:
     region = ChromRegion();
     try:
       string = string.replace("chr","");
-      chr = int(string.split(":")[0]);
-      start = int(string.split(":")[1].split("-")[0]);
-      end = int(string.split(":")[1].split("-")[1]);
+      chr = chrom2chr(string.split(":")[0]);
+      start = string.split(":")[1].split("-")[0];
+      end = string.split(":")[1].split("-")[1];
+      
+      start = start.replace(",","");
+      end = end.replace(",","");
+      
+      start = int(start);
+      end = int(end);
       
       region.chr = chr;
       region.start = start;
