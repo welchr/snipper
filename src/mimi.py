@@ -36,8 +36,11 @@ def mimi_fetch_interactions(gene_id,taxid=None):
   
   url = MIMI_INT_URL % gene_id;
   
-  if _SNIPPER_DEBUG:
-    print "DEBUG: executing MiMI URL %s" % url;
+  try:
+    if _SNIPPER_DEBUG:
+      print "DEBUG: executing MiMI URL %s" % url;
+  except:
+    pass
   
   xml = urllib2.urlopen(url,timeout=CON_TIMEOUT);
   tree = ElementTree();

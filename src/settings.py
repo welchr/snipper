@@ -97,8 +97,11 @@ def parseGenericFile(file):
   snps = set();
   regions = set();
   
-  f = open(file);
+  f = open(file,"rU");
   for line in f:
+    if line.strip() == "":
+      continue;
+    
     chunks = line.split();
     for e in chunks:
       if "rs" in e:
@@ -118,7 +121,7 @@ def parseGenericFile(file):
 # Pulls out regions from a string of the form: 
 # chr4:1914-20104,chr8:939-93939,chrX:11738-234050
 def parseRegions(regions_string):
-  regions = [];
+  regions = set();
   for chunk in regions_string.split(","):
     chunk = chunk.strip();
     (chrom,pos_chunk) = chunk.split(":");
@@ -137,9 +140,33 @@ def parseRegions(regions_string):
     except:
       raise ValueError, "Bad region string: (chr=%s,start=%s,end=%s)" % (str(chr),str(start),str(end));
     
-    regions.append( ChromRegion(chr,start,end) );
+    regions.add( ChromRegion(chr,start,end) );
   
   return regions;
+
+def convertFlank(flank):
+  iFlank = None;
+
+  try:
+    iFlank = int(flank);
+    return iFlank;
+  except:
+    pass;
+
+  p = re.compile("(.+)(kb|KB|Kb|kB|MB|Mb|mb|mB)")
+  match = p.search(flank);
+  if match:
+    digits = match.groups()[0];
+    suffix = match.groups()[1];
+
+    if suffix in ('kb','KB','Kb','kB'):
+      iFlank = float(digits)*1000;
+    elif suffix in ('MB','Mb','mb','mB'):
+      iFlank = float(digits)*1000000;
+
+    iFlank = int(round(iFlank));
+
+  return iFlank;
 
 def findRelative(file):
   full_path = None;
@@ -201,26 +228,26 @@ def findConfigFile():
   raise RuntimeError, err_msg;
 
 # Class to keep track of program settings. 
-class Settings:
+class Settings(object):
   def __init__(self):
     self.snpset = set();            # set of SNPs
     self.genes = set();             # set of genes
-    self.regions = [];              # list of chromosomal regions
-    self.distance = 250000;         # distance to search near SNPs
-    self.num_genes = 9999;          # number of genes to return per SNP
+    self.regions = set();           # list of chromosomal regions
+    self._distance = 250000;         # distance to search near SNPs
+    self._num_genes = 9999;          # number of genes to return per SNP
     self.terms = set();             # search terms
     self.omim = True;               # use OMIM?
     self.pubmed = True;             # search pubmed?
-    self.pnum = 10;                 # number of pubmed articles to return
+    self._pnum = 10;                 # number of pubmed articles to return
     self.per_term = False;          # complicated, see help for info
     self.gene_rif = True;           # use gene rifs?
     self.scandb = True;             # search scandb for eqtls?
-    self.scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
+    self._scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
     self.mimi = True;               # search MiMi for interactions between genes?
     self.outdir = os.path.join(os.getcwd(),"snipper_report") ; # output directory
     self.console = False;           # write text output directly to console
     self.db_file = None;            # database file for snp positions & genes
-    self.build = None;              # human genome build for snp/gene positions
+    self._build = None;              # human genome build for snp/gene positions
     self.valid_builds = set();      # builds available for use (conf file)
 
     self.conf = findConfigFile();
@@ -231,6 +258,95 @@ class Settings:
         self.write();
     except:
       pass
+
+  def _get_dist(self):
+    return self._distance;
+
+  def _set_dist(self,value):
+    x = convertFlank(value);
+    if x <= 0:
+      raise ValueError, "Error: distance must be positive and non-zero";
+    
+    self._distance = x;
+  
+  def _get_num_genes(self):
+    return self._num_genes;
+  
+  def _set_num_genes(self,value):
+    x = int(value);
+    if x <= 0:
+      raise ValueError, "Error: number of genes must be positive and non-zero";
+    
+    self._num_genes = x;
+  
+  def _get_pnum(self):
+    return self._pnum;
+  
+  def _set_pnum(self,value):
+    x = int(value);
+    if x < 0:
+      raise ValueError, "Error: number of PubMed articles must be non-zero";
+  
+    self._pnum = x;
+  
+  def _get_scandb_pval(self):
+    return self._scandb_pval;
+  
+  def _set_scandb_pval(self,value):
+    x = float(value);
+    if x < 0 or x > 1:
+      raise ValueError, "Error: SCAN p-value threshold must be between 0 and 1";
+    
+    self._scandb_pval = x;
+  
+  def _get_build(self):
+    return self._build;
+  
+  def _set_build(self,value):
+    self.checkBuild(value);
+    self.getDB(value);
+    self._build = value;
+  
+  build = property(_get_build,_set_build);
+  scandb_pval = property(_get_scandb_pval,_set_scandb_pval);
+  pnum = property(_get_pnum,_set_pnum);
+  num_genes = property(_get_num_genes,_set_num_genes);
+  distance = property(_get_dist,_set_dist);
+
+  # Pull out genes, SNPs, and genomic regions from a file. 
+  def parseGenericFile(self,file):
+    if not os.path.isfile(file):
+      raise Exception, "Could not find file: " + str(absolute);
+    
+    f = open(file,"rU");
+    for line in f:
+      self.parseGenericString(line);
+    
+    f.close();
+    
+  def parseGenericString(self,s):
+    if s.strip() == "":
+      return;
+    
+    chunks = s.split();
+    for e in chunks:
+      if "rs" in e:
+        self.snpset.add(e);
+      elif "chr" in e:
+        if "-" in e:
+          self.regions.add( ChromRegion.from_str(e) );
+        else:
+          self.snpset.add(e);
+      else:
+        self.genes.add(e);
+
+  def parseTerms(self,term_string,delim="\n"):
+    for term in term_string.split(delim):
+      term = term.strip();
+      if term == "":
+        continue;
+      else:
+        self.terms.add(term);
 
   def getCmdLine(self):
     parser = VerboseParser();
@@ -336,9 +452,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
 
     # Human genome build. 
     if options.build:
-      self.checkBuild(options.build);
       self.build = options.build;
-      self.getDB(options.build);
 
     # Get genes from command line (and file, if specified.) 
     if options.gene != None:
@@ -420,7 +534,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     
     # Check to see if user's requested build is in conf file. 
     if not parser.has_section(build):
-      sys.exit("Error: the human genome build you have requested does not "
+      raise ValueError, ("Error: the human genome build you have requested does not "
                 "exist on your system. Please use bin/setup_snipper.py to "
                 "create a database file for this build, or download the "
                 "database file from our website. "
@@ -433,15 +547,15 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     # Get database file information. 
     db_file = findRelative(parser.get(build,'db_file'));
     if db_file == None:
-      sys.exit("Error: could not find database file %s. Please check to make "
+      raise ValueError, ("Error: could not find database file %s. Please check to make "
                 "sure this file exists, or that the path is specified "
                 "correctly in the conf file. " % db_file);
     elif not path.isfile(db_file):
-      sys.exit("Error: could not find database file %s. Please check to make "
+      raise ValueError, ("Error: could not find database file %s. Please check to make "
                 "sure this file exists, or that the path is specified "
                 "correctly in the conf file. " % db_file);
     elif not os.access(db_file,os.R_OK):
-      sys.exit("Error: you do not have permissions to read the database "
+      raise ValueError, ("Error: you do not have permissions to read the database "
                 "file: %s. Please make sure this file is readable. " % db_file);
     else:
       self.db_file = db_file;
@@ -455,7 +569,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     try:
       self.build = parser.get('program','default_build');
     except:
-      sys.exit("Error: default_build does not exist in conf. Should be under section [program].")
+      raise ValueError, ("Error: default_build does not exist in conf. Should be under section [program].")
     
     # Check build. 
     self.checkBuild(self.build);
@@ -474,16 +588,21 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     print >> out, "-----------------";
     print >> out, "Set of SNPs: " + str(self.snpset);
     print >> out, "Set of genes: " + str(self.genes);
+    print >> out, "Set of regions: " + str([str(i) for i in self.regions]);
     print >> out, "Distance: " + str(self.distance);
     print >> out, "Num genes: " + str(self.num_genes);
     print >> out, "Search terms: " + str(self.terms);
     print >> out, "Use OMIM: " + str(self.omim);
     print >> out, "Use Pubmed: " + str(self.pubmed);
+    print >> out, "Use SCAN: " + str(self.scandb);
+    print >> out, "Use GeneRIF: " + str(self.gene_rif);
+    print >> out, "SCAN p-value thresh: " + str(self.scandb_pval);
     print >> out, "Num articles: " + str(self.pnum);
     print >> out, "Per term: " + str(self.per_term);
-    print >> out, "Use GeneRIF: " + str(self.gene_rif);
     print >> out, "Output directory: " + str(self.outdir);
     print >> out, "Build: " + str(self.build);
+    print >> out, "Valid builds: " + str(self.valid_builds);
+    print >> out, "Database: " + str(self.db_file);
 
 if __name__ == "__main__":
   pass

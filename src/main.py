@@ -272,6 +272,7 @@ def run_snipper(settings):
 
   # Write to console, or write to disk? 
   if not settings.console:
+    print "Creating HTML report..";
     make_rest(
       get_core_path(),
       settings,
@@ -279,6 +280,8 @@ def run_snipper(settings):
       scandb_results,
       direct_ints
     );
+    
+    print "Creating text report..";
     make_text(
       settings,
       gene_symbols,
@@ -343,6 +346,7 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
 #  );
   
   args = [
+    "-Q",
     core_path,
     "-b",
     "html",
@@ -352,17 +356,16 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
     html_path
   ];
   
-  print "Creating HTML report using Sphinx..";
-  mute_std();
+  #mute_std();
   
-  try:
-    if _SNIPPER_DEBUG: 
-      unmute_std();
-  except:
-    pass
+#  try:
+#    if _SNIPPER_DEBUG: 
+#      unmute_std();
+#  except:
+#    pass
   
   sphinx_build(args);
-  unmute_std();
+  #unmute_std();
   
   # Write README file. 
   write_readme(os.path.join(dir_path,"README.txt"));

@@ -6,6 +6,7 @@ import time
 from multiprocessing import Process, Queue, Pipe
 from Queue import Empty as QueueEmpty
 from settings import *
+from main import run_snipper
 
 py2 = py30 = py31 = False
 version = sys.hexversion
@@ -49,7 +50,7 @@ class SnipperUI():
     menubar = Menu(root);
     
     filemenu = Menu(menubar,tearoff=0);
-    filemenu.add_command(label="Run Snipper..",command=todo);
+    filemenu.add_command(label="Run Snipper..",command=self.run);
     filemenu.add_separator();
     filemenu.add_command(label="Exit",command=todo);
     menubar.add_cascade(label="File",menu=filemenu);
@@ -181,7 +182,7 @@ class SnipperUI():
     
     style.configure("Imp.TButton",foreground='red',font='TkDefaultFont 9 bold');
     #run_button = ttk.Button(root,text="Run Snipper",width=15,style="Imp.TButton");
-    run_button = Button(root,text="Run Snipper",fg="red",font="TkDefaultFont 12 bold",relief="groove",padx=2,pady=2,justify=CENTER);
+    run_button = Button(root,text="Run Snipper",fg="red",font="TkDefaultFont 12 bold",relief="groove",padx=2,pady=2,justify=CENTER,command=self.run);
     run_button.pack(anchor=CENTER,padx=3,pady=7);
     
     output_tab = Frame(notebook);
@@ -231,6 +232,7 @@ class SnipperUI():
     
   def init_defaults(self):
     s = Settings();
+    self.settings = s;
     
     self.entryOutdir.insert(0,s.outdir);
     self.comboBuild.configure(values=list(s.valid_builds));
@@ -262,8 +264,67 @@ class SnipperUI():
   
   def load_regions(self):
     regions_file = askopenfilename();
-    print "Got file: %s" % regions_file;
     
+    if regions_file == None or regions_file == "":
+      return;
+    
+    if not os.path.isfile(regions_file):
+      showerror(title="Error",message="Could not open file: %s" % regions_file);
+      return;
+    elif not os.access(regions_file,os.R_OK):
+      showerror(title="Error",message="Could not access file: %s" % regions_file);
+      return;
+    
+    self.settings.parseGenericFile(regions_file);
+    
+    items = [];
+    items += list(self.settings.snpset);
+    items += list(self.settings.genes);
+    items += [str(i) for i in self.settings.regions];
+    joined_list = "\n".join(items);
+    
+    self.textRegions.delete(1.0,END);
+    self.textRegions.insert(END,joined_list);
+
+  def update_settings(self):
+    try:
+      self.settings.parseGenericString(self.textRegions.get(1.0,END));
+      self.settings.parseTerms(self.textSearch.get(1.0,END));
+      self.settings.build = self.comboBuild.get();
+      self.settings.distance = self.entryDist.get();
+      self.settings.num_genes = self.entryNumGenes.get();
+      self.settings.pubmed = self.bCheckPubmed.get();
+      self.settings.mimi = self.bCheckMimi.get();
+      self.settings.scandb = self.bCheckScan.get();
+      self.settings.outdir = self.entryOutdir.get();
+      self.settings.per_term = self.bCheckEachCombo.get();
+      self.settings.scandb_pval = self.entryScanPval.get();
+    except:
+      msg = sys.exc_value;
+      showerror(title="Error",message=msg);
+      return False;
+    
+    return True;
+    
+  def run(self):
+    bSetOK = self.update_settings();
+    if not bSetOK:
+      return;
+    
+    queue = Queue();
+    Console(self.root,queue);
+    
+    p = Process(target=snipper_thread,args=(self.settings,queue));
+    p.start();
+    
+def snipper_thread(settings,queue):
+  redir = IOQueueRedirect(queue);
+  redir.start();
+  
+  run_snipper(settings);
+  
+  redir.stop();
+
 class AboutDialog(Toplevel):
   def __init__(self,root):
     Toplevel.__init__(self,root);
@@ -300,12 +361,30 @@ class AboutDialog(Toplevel):
   def cancel(self,event=None):
     self.root.focus_set();
     self.destroy();
-    
+
+class IOQueueRedirect:
+  def __init__(self,queue):
+    self.queue = queue;
+
+  def start(self):
+    sys.stdout = self;
+    sys.stderr = self;
+
+  def stop(self):
+    sys.stdout = sys.__stdout__;
+    sys.stderr = sys.__stderr__;
+
+  def write(self,s):
+    self.queue.put(s);
+
+  def flush(self):
+    pass
+
 class Console(Toplevel):
-  def __init__(self,master=None):
+  def __init__(self,master=None,queue=Queue()):
     Toplevel.__init__(self,master);
     self.master = master;
-    self.queue = Queue();
+    self.queue = queue;
     self.html_index = None;
     
     # Set style. 
@@ -320,25 +399,25 @@ class Console(Toplevel):
     self.sbar = Scrollbar(self.textFrame);
     self.sbar.pack(side=RIGHT,fill=Y);
     
-    self.text = Text(self.textFrame,wrap=WORD,yscrollcommand=self.sbar.set,padx=3,pady=3)
+    self.text = Text(self.textFrame,wrap=WORD,yscrollcommand=self.sbar.set,padx=3,pady=3);
     self.text.pack(fill=BOTH,expand=True);
-    self.text.configure(background="white")
+    self.text.configure(background="white");
     self.sbar.config(command=self.text.yview);
 
-    self.tBu32 = ttk.Button(self,command=self.open_browser)
+    self.tBu32 = ttk.Button(self,command=self.open_browser);
     self.tBu32.pack(side=LEFT,anchor=W,padx=4,pady=4);
-    self.tBu32.configure(takefocus="")
+    self.tBu32.configure(takefocus="");
     self.tBu32.configure(text="Open browser..")
 
-    self.tBu33 = ttk.Button(self,command=self.save_log)
+    self.tBu33 = ttk.Button(self,command=self.save_log);
     self.tBu33.pack(side=LEFT,anchor=W,padx=4,pady=4);
-    self.tBu33.configure(takefocus="")
+    self.tBu33.configure(takefocus="");
     self.tBu33.configure(text="Save log..")
 
-    self.tBu34 = ttk.Button(self,command=self.cancel)
+    self.tBu34 = ttk.Button(self,command=self.cancel);
     self.tBu34.pack(side=RIGHT,anchor=E,padx=4,pady=4);
-    self.tBu34.configure(takefocus="")
-    self.tBu34.configure(text="Stop")
+    self.tBu34.configure(takefocus="");
+    self.tBu34.configure(text="Stop");
     
     self.protocol("WM_DELETE_WINDOW",self.cancel);
     

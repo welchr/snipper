@@ -19,8 +19,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #===============================================================================
 
-from util import convertFlank
-
 SCANDB_WEB_URL = "http://www.scandb.org/";
 SCANDB_PAPER_URL = "http://www.ncbi.nlm.nih.gov/pubmed/19933162";
 

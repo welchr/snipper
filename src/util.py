@@ -349,27 +349,3 @@ def ifnone(object,alternative):
     return alternative;
   else:
     return object;
-
-def convertFlank(flank):
-  iFlank = None;
-
-  try:
-    iFlank = int(flank);
-    return iFlank;
-  except:
-    pass;
-
-  p = re.compile("(.+)(kb|KB|Kb|kB|MB|Mb|mb|mB)")
-  match = p.search(flank);
-  if match:
-    digits = match.groups()[0];
-    suffix = match.groups()[1];
-
-    if suffix in ('kb','KB','Kb','kB'):
-      iFlank = float(digits)*1000;
-    elif suffix in ('MB','Mb','mb','mB'):
-      iFlank = float(digits)*1000000;
-
-    iFlank = int(round(iFlank));
-
-  return iFlank;
