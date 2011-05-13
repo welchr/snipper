@@ -346,7 +346,6 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
 #  );
   
   args = [
-    "-Q",
     core_path,
     "-b",
     "html",

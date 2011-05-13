@@ -3,7 +3,8 @@ import os
 import sys
 import webbrowser
 import time
-from multiprocessing import Process, Queue, Pipe
+from multiprocessing import Process, Queue, Value
+from threading import Thread
 from Queue import Empty as QueueEmpty
 from settings import *
 from main import run_snipper
@@ -311,17 +312,26 @@ class SnipperUI():
     if not bSetOK:
       return;
     
-    queue = Queue();
-    Console(self.root,queue);
+    try:
+      os.makedirs(self.settings.outdir);
+    except:
+      msg = sys.exc_value;
+      showerror(title="Error",message=msg);
+      return;
     
-    p = Process(target=snipper_thread,args=(self.settings,queue));
+    con = Console(self.root);
+    con.html_index = os.path.join(self.settings.outdir,"html","index.html");
+    
+    p = Thread(target=snipper_thread,args=(self.settings,con));
     p.start();
     
-def snipper_thread(settings,queue):
-  redir = IOQueueRedirect(queue);
+def snipper_thread(settings,con):
+  redir = IOQueueRedirect(con.queue);
   redir.start();
-  
+
+  con.busy();
   run_snipper(settings);
+  con.not_busy();
   
   redir.stop();
 
@@ -386,6 +396,7 @@ class Console(Toplevel):
     self.master = master;
     self.queue = queue;
     self.html_index = None;
+    self.busy_state = False;
     
     # Set style. 
     style = ttk.Style()
@@ -438,20 +449,33 @@ class Console(Toplevel):
         self.text.update_idletasks();
 
     except QueueEmpty:
-      pass
-        
+      pass   
+    
     self.after(100,self.update_me);
   
   def cancel(self,event=None):
-    self.master.focus_set();
-    self.destroy();
+    if not self.busy_state:
+      self.master.focus_set();
+      self.destroy();
+    else:
+      pass
     
   def save_log(self):
     fname = asksaveasfilename();
     print fname;
 
+  def busy(self):
+    self.busy_state = True;
+    self.config(cursor="wait");
+    self.text.config(cursor="wait");
+    
+  def not_busy(self):
+    self.busy_state = False;
+    self.config(cursor="");
+    self.text.config(cursor="xterm");
+
   def open_browser(self):
-    if self.html_index != None:
+    if self.html_index != None and not self.busy_state:
       webbrowser.open(self.html_index);
     else:
       self.queue.put("Can't open report in browser yet, Snipper has not finished yet." + os.linesep);
