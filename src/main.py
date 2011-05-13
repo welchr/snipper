@@ -144,7 +144,7 @@ def remove_duplicates(*args):
 
 def get_current_snps(snp_list,db_file):
   db = SNPDB(db_file);
-  new_list = [];
+  new_set = set();
   d = {};
   for snp in snp_list:
     trans = db.get_current_name(snp);
@@ -152,9 +152,9 @@ def get_current_snps(snp_list,db_file):
       print >> sys.stderr, "Warning: SNP %s was merged into %s in the current genome build.." % (snp,trans);
       d[snp] = trans;
     
-    new_list.append(trans);
+    new_set.add(trans);
   
-  return (new_list,d);
+  return (new_set,d);
 
 def run_snipper(settings):
   outdir = settings.outdir;

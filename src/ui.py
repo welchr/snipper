@@ -301,7 +301,9 @@ class SnipperUI():
       self.settings.per_term = self.bCheckEachCombo.get();
       self.settings.scandb_pval = self.entryScanPval.get();
     except:
-      msg = sys.exc_value;
+      import traceback
+      msg = traceback.format_exc();
+      #msg = sys.exc_value;
       showerror(title="Error",message=msg);
       return False;
     
@@ -315,8 +317,10 @@ class SnipperUI():
     try:
       os.makedirs(self.settings.outdir);
     except:
-      msg = sys.exc_value;
-      showerror(title="Error",message=msg);
+      msg = ("Snipper output directory already exists: %(dir)s. %(sep)sPlease remove "
+            "this directory, or change your output directory in the "
+            "'Output' tab. " % {'dir':self.settings.outdir,'sep':os.linesep});
+      showerror(title="Output directory exists!",message=msg);
       return;
     
     con = Console(self.root);
@@ -351,9 +355,6 @@ class AboutDialog(Toplevel):
     label3 = Label(self,text="Design and methodology by: ");
     label3.pack(padx=3,pady=3,anchor=W);
     
-    self.bind("<Return>",self.cancel);
-    self.bind("<Escape>",self.cancel);
-    
     authors = [
       'Ryan Welch',
       'Tanya Teslovich',
@@ -365,6 +366,8 @@ class AboutDialog(Toplevel):
     label4 = Label(self,text=author_text,justify=LEFT);
     label4.pack(padx=3,pady=3,anchor=W);
     
+    self.bind("<Return>",self.cancel);
+    self.bind("<Escape>",self.cancel);
     self.resizable(0,0);
     self.grab_set();
    
@@ -459,7 +462,10 @@ class Console(Toplevel):
       self.destroy();
     else:
       pass
-    
+  
+  def stop(self):
+    pass
+  
   def save_log(self):
     fname = asksaveasfilename();
     print fname;
