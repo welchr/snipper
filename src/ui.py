@@ -3,11 +3,12 @@ import os
 import sys
 import webbrowser
 import time
-from multiprocessing import Process, Queue, Value
+import multiprocessing as mp
 from threading import Thread
 from Queue import Empty as QueueEmpty
 from settings import *
 from main import run_snipper
+from functools import partial
 
 py2 = py30 = py31 = False
 version = sys.hexversion
@@ -323,20 +324,24 @@ class SnipperUI():
       showerror(title="Output directory exists!",message=msg);
       return;
     
-    con = Console(self.root);
+    eventBusy = mp.Event();
+    msgQueue = mp.Queue();
+    
+    p = mp.Process(target=snipper_thread,args=(self.settings,msgQueue,eventBusy));
+    con = Console(self.root,msgQueue,eventBusy,p);
     con.html_index = os.path.join(self.settings.outdir,"html","index.html");
     
-    p = Thread(target=snipper_thread,args=(self.settings,con));
-    p.daemon = True;
     p.start();
     
-def snipper_thread(settings,con):
-  redir = IOQueueRedirect(con.queue);
+def snipper_thread(settings,queue,busy):
+  redir = IOQueueRedirect(queue);
   redir.start();
 
-  con.busy();
+  busy.set();
   run_snipper(settings);
-  con.not_busy();
+  busy.clear();
+  
+  queue.put(os.linesep + "Snipper has completed! Click the 'Open browser..' button to open the report in your web browser.");
   
   redir.stop();
 
@@ -395,12 +400,14 @@ class IOQueueRedirect:
     pass
 
 class Console(Toplevel):
-  def __init__(self,master=None,queue=Queue()):
+  def __init__(self,master,queue,busy,proc):
     Toplevel.__init__(self,master);
     self.master = master;
     self.queue = queue;
     self.html_index = None;
-    self.busy_state = False;
+    self.busy_state = busy;
+    self.proc = proc;
+    self.stopped = False;
     
     # Set style. 
     style = ttk.Style()
@@ -429,7 +436,7 @@ class Console(Toplevel):
     self.buttonSaveLog.configure(takefocus="");
     self.buttonSaveLog.configure(text="Save log..")
 
-    self.buttonCancel = ttk.Button(self,command=self.cancel);
+    self.buttonCancel = ttk.Button(self,command=self.stop);
     self.buttonCancel.pack(side=RIGHT,anchor=E,padx=4,pady=4);
     self.buttonCancel.configure(takefocus="");
     self.buttonCancel.configure(text="Stop");
@@ -455,41 +462,52 @@ class Console(Toplevel):
     except QueueEmpty:
       pass   
     
+    if self.busy_state.is_set():
+      self.busy();
+    else:
+      self.not_busy();
+    
     self.after(100,self.update_me);
   
   def cancel(self,event=None):
-    if not self.busy_state:
-      self.master.focus_set();
-      self.destroy();
-    else:
-      pass
+    self.stop();
+    self.master.focus_set();
+    self.destroy();
   
   def stop(self):
-    pass
-  
+    self.queue.put(os.linesep + "Current run terminated. You can close the console at any time.");
+    self.proc.terminate();
+    self.proc.join();
+    self.busy_state.clear();
+    self.stopped = True;
+
+  def destroy(self):
+    self.stop();
+    Toplevel.destroy(self);
+
   def save_log(self):
     fname = asksaveasfilename();
     print fname;
 
   def busy(self):
-    self.busy_state = True;
     self.config(cursor="wait");
     self.text.config(cursor="wait");
-    self.buttonOpenBrowser.disable();
-    self.buttonSaveLog.disable();
+    self.buttonOpenBrowser.config(state=DISABLED);
+    self.buttonSaveLog.config(state=DISABLED);
+    self.buttonCancel.config(state=NORMAL);
     
   def not_busy(self):
-    self.busy_state = False;
     self.config(cursor="");
     self.text.config(cursor="xterm");
-    self.buttonOpenBrowser.enable();
-    self.buttonSaveLog.enable();
+    
+    if not self.stopped:
+      self.buttonOpenBrowser.config(state=NORMAL);
+    
+    self.buttonSaveLog.config(state=NORMAL);
+    self.buttonCancel.config(state=DISABLED);
 
   def open_browser(self):
-    if self.html_index != None and not self.busy_state:
-      webbrowser.open(self.html_index);
-    else:
-      self.queue.put("Can't open report in browser yet, Snipper has not finished yet." + os.linesep);
+    webbrowser.open(self.html_index);
 
 def main():
   SnipperUI();
