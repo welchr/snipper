@@ -327,6 +327,7 @@ class SnipperUI():
     con.html_index = os.path.join(self.settings.outdir,"html","index.html");
     
     p = Thread(target=snipper_thread,args=(self.settings,con));
+    p.daemon = True;
     p.start();
     
 def snipper_thread(settings,con):
@@ -418,20 +419,20 @@ class Console(Toplevel):
     self.text.configure(background="white");
     self.sbar.config(command=self.text.yview);
 
-    self.tBu32 = ttk.Button(self,command=self.open_browser);
-    self.tBu32.pack(side=LEFT,anchor=W,padx=4,pady=4);
-    self.tBu32.configure(takefocus="");
-    self.tBu32.configure(text="Open browser..")
+    self.buttonOpenBrowser = ttk.Button(self,command=self.open_browser);
+    self.buttonOpenBrowser.pack(side=LEFT,anchor=W,padx=4,pady=4);
+    self.buttonOpenBrowser.configure(takefocus="");
+    self.buttonOpenBrowser.configure(text="Open browser..")
 
-    self.tBu33 = ttk.Button(self,command=self.save_log);
-    self.tBu33.pack(side=LEFT,anchor=W,padx=4,pady=4);
-    self.tBu33.configure(takefocus="");
-    self.tBu33.configure(text="Save log..")
+    self.buttonSaveLog = ttk.Button(self,command=self.save_log);
+    self.buttonSaveLog.pack(side=LEFT,anchor=W,padx=4,pady=4);
+    self.buttonSaveLog.configure(takefocus="");
+    self.buttonSaveLog.configure(text="Save log..")
 
-    self.tBu34 = ttk.Button(self,command=self.cancel);
-    self.tBu34.pack(side=RIGHT,anchor=E,padx=4,pady=4);
-    self.tBu34.configure(takefocus="");
-    self.tBu34.configure(text="Stop");
+    self.buttonCancel = ttk.Button(self,command=self.cancel);
+    self.buttonCancel.pack(side=RIGHT,anchor=E,padx=4,pady=4);
+    self.buttonCancel.configure(takefocus="");
+    self.buttonCancel.configure(text="Stop");
     
     self.protocol("WM_DELETE_WINDOW",self.cancel);
     
@@ -474,11 +475,15 @@ class Console(Toplevel):
     self.busy_state = True;
     self.config(cursor="wait");
     self.text.config(cursor="wait");
+    self.buttonOpenBrowser.disable();
+    self.buttonSaveLog.disable();
     
   def not_busy(self):
     self.busy_state = False;
     self.config(cursor="");
     self.text.config(cursor="xterm");
+    self.buttonOpenBrowser.enable();
+    self.buttonSaveLog.enable();
 
   def open_browser(self):
     if self.html_index != None and not self.busy_state:
