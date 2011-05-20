@@ -9,6 +9,7 @@ from Queue import Empty as QueueEmpty
 from settings import *
 from main import run_snipper
 from functools import partial
+from shutil import rmtree
 
 py2 = py30 = py31 = False
 version = sys.hexversion
@@ -24,12 +25,6 @@ elif version >= 0x03010000:
     py31 = True
     from tkinter import *
     import tkinter.ttk as ttk
-else:
-    print ("""
-    You do not have a version of python supporting ttk widgets..
-    You need a version >= 2.6 to execute PAGE modules.
-    """)
-    sys.exit()
 
 from tkFileDialog import *
 from tkMessageBox import *
@@ -315,6 +310,16 @@ class SnipperUI():
     if not bSetOK:
       return;
     
+    if os.path.isdir(self.settings.outdir) and self.settings.overwrite:
+      if self.settings.warn_overwrite:
+        del_dir = askyesno(title="Message",message="Directory exists: %s. Are you sure you want to delete it?" % self.settings.outdir);
+        if del_dir:
+          rmtree(self.settings.outdir);
+        else:
+          return;
+      else:
+        rmtree(self.settings.outdir);
+    
     try:
       os.makedirs(self.settings.outdir);
     except:
@@ -325,23 +330,32 @@ class SnipperUI():
       return;
     
     eventBusy = mp.Event();
+    eventStopped = mp.Event();
     msgQueue = mp.Queue();
     
-    p = mp.Process(target=snipper_thread,args=(self.settings,msgQueue,eventBusy));
-    con = Console(self.root,msgQueue,eventBusy,p);
+    p = mp.Process(target=snipper_thread,args=(self.settings,msgQueue,eventBusy,eventStopped));
+    con = Console(self.root,msgQueue,eventBusy,eventStopped,p);
     con.html_index = os.path.join(self.settings.outdir,"html","index.html");
     
     p.start();
     
-def snipper_thread(settings,queue,busy):
+def snipper_thread(settings,queue,busy,stop):
   redir = IOQueueRedirect(queue);
   redir.start();
 
   busy.set();
-  run_snipper(settings);
-  busy.clear();
   
-  queue.put(os.linesep + "Snipper has completed! Click the 'Open browser..' button to open the report in your web browser.");
+  try:
+    run_snipper(settings);
+    queue.put(os.linesep + "Snipper has completed! Click the 'Open browser..' button to open the report in your web browser.");
+  except:
+    stop.set();
+    if _SNIPPER_DEBUG:
+      raise;
+    else:
+      print sys.exc_value;
+      
+  busy.clear();
   
   redir.stop();
 
@@ -400,14 +414,14 @@ class IOQueueRedirect:
     pass
 
 class Console(Toplevel):
-  def __init__(self,master,queue,busy,proc):
+  def __init__(self,master,queue,busy,stopped,proc):
     Toplevel.__init__(self,master);
     self.master = master;
     self.queue = queue;
     self.html_index = None;
     self.busy_state = busy;
     self.proc = proc;
-    self.stopped = False;
+    self.stopped = stopped;
     
     # Set style. 
     style = ttk.Style()
@@ -479,7 +493,7 @@ class Console(Toplevel):
     self.proc.terminate();
     self.proc.join();
     self.busy_state.clear();
-    self.stopped = True;
+    self.stopped.set();
 
   def destroy(self):
     self.stop();
@@ -487,7 +501,14 @@ class Console(Toplevel):
 
   def save_log(self):
     fname = asksaveasfilename();
-    print fname;
+    try:
+      f = open(fname,"w");
+      print >> f, self.text.get(1.0,END);
+      f.close();
+      self.queue.put(os.linesep + "Wrote log file to: %s" % fname);
+    except:
+      self.queue.put(os.linesep + "Error writing log file: ");
+      self.queue.put(sys.exc_value);
 
   def busy(self):
     self.config(cursor="wait");
@@ -500,14 +521,19 @@ class Console(Toplevel):
     self.config(cursor="");
     self.text.config(cursor="xterm");
     
-    if not self.stopped:
+    if not self.stopped.is_set():
       self.buttonOpenBrowser.config(state=NORMAL);
+    else:
+      self.buttonOpenBrowser.config(state=DISABLED);
     
     self.buttonSaveLog.config(state=NORMAL);
     self.buttonCancel.config(state=DISABLED);
 
   def open_browser(self):
-    webbrowser.open(self.html_index);
+    if os.path.exists(self.html_index):
+      webbrowser.open(self.html_index);
+    else:
+      pass
 
 def main():
   SnipperUI();

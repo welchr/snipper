@@ -122,18 +122,19 @@ def soupify(url):
   try:
     soup = BeautifulStoneSoup(urllib2.urlopen(url));
   except:
-    print >> sys.stderr, "** Looks like a network error occurred when trying to contact NCBI.";
-    print >> sys.stderr, "** Check your network settings and make sure you can ping out.";
-    print >> sys.stderr, "** It is also entirely possible NCBI eutils are down, try again in a minute or two.";
-    print >> sys.stderr, "** URL attempted: " + url;
-    print >> sys.stderr, "** Error was: " + str(sys.exc_info()[1]);
-    sys.exit(1);
+    msg = "";
+    msg += "** Looks like a network error occurred when trying to contact NCBI.";
+    msg += "** Check your network settings and make sure you can ping out.";
+    msg += "** It is also entirely possible NCBI eutils are down, try again in a minute or two.";
+    msg += "** URL attempted: " + url;
+    msg += "** Error was: " + str(sys.exc_info()[1]);
+    raise Exception, msg;
 
   # Allow at most 2 queries per second. 
   # This would be more efficient in a queuing system, but in practice, 
   # this works just fine. 
   # And yes, all NCBI queries must pass through this method. 
-  sleep(0.5);
+  sleep(0.8);
   
   return soup;
 

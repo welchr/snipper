@@ -36,16 +36,16 @@ from ranking import *
 from snp import *
 from textwrap import fill
 from ncbi import *
+from multiprocessing import freeze_support
+import __builtin__
 
-try:
-  import sphinx
-except:
-  pass
+# Global debug flag. 
+__builtin__._SNIPPER_DEBUG = False;
 
 PROG_VERSION = "1.2";
 PROG_VERSION_STRING = "Version %s   " % PROG_VERSION;
 PROG_DATE = "03-16-2011";
-NUM_GENES_WARN = 100;
+NUM_GENES_WARN = 50;
 
 def get_core_path():
   snipper_src = os.path.dirname(os.path.abspath(sys.argv[0]));
@@ -156,9 +156,44 @@ def get_current_snps(snp_list,db_file):
   
   return (new_set,d);
 
+def print_debug():
+  import traceback
+  import pdb
+  import inspect
+  import platform
+  import sys
+  import os
+  import copy
+
+  def print_err(x):
+    print >> sys.stderr, x;
+
+  print_err("An error has occurred. Please see below for debugging information.");
+  print_err("");
+  print_err("Python executable: %s" % sys.executable);
+  print_err("Platform: %s" % str(platform.uname()));
+  print_err("Linux: %s" % str(platform.linux_distribution()));
+  print_err("Windows: %s" % str(platform.win32_ver()));
+  print_err("Mac: %s" % str(platform.mac_ver()));
+  print_err("Library paths: ");
+  for path in sys.path:
+    print_err(".. %s" % path);
+  print_err("Executing in: %s" % str(os.getcwd()));
+  print_err("Called by: %s" % str(sys.argv[0]));
+  print_err("");
+  traceback.print_exc(file=sys.stderr);
+  print_err("");
+  for t in inspect.trace():
+    print_err("Frame: %s" % str(" ".join(map(str,t[1:]))));
+    for local,value in dict(t[0].f_locals).iteritems():
+      value = str(value).replace(os.linesep,"");
+      print_err("  %s : %s ..." % (local,value[0:120]));
+
 def run_snipper(settings):
   outdir = settings.outdir;
   user_genes = settings.genes;
+  
+  check_ncbi();
   
   # Build. Make sure the user knows it. 
   print >> sys.stderr, "Using build %s for SNP and gene positions.." % settings.build;
@@ -271,7 +306,7 @@ def run_snipper(settings):
 #  gene_symbols = ranker.rank_genes(gene_symbols);
 
   # Write to console, or write to disk? 
-  if not settings.console:
+  if len(sys.argv) <= 1 or not settings.console:
     print "Creating HTML report..";
     make_rest(
       get_core_path(),
@@ -330,12 +365,15 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
   inters = os.path.join(rst_path,"interactions.rst");
   with open(inters,'w') as f:
     write_rest_ints(direct_ints,f);
-    
+  
+  # Write README file. 
+  write_readme(os.path.join(dir_path,"README.txt"));
+  
   # Run sphinx build process. 
   try:
     from sphinx.cmdline import main as sphinx_build
   except:
-    raise Exception("Error: sphinx is not installed, did you run setup_snipper.py?");
+    raise Exception("Error: sphinx is not installed.");
 
 # Code does not work in Windows
 #  args = "%s -b html -c %s %s %s" % (
@@ -355,24 +393,15 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
     html_path
   ];
   
-  #mute_std();
+  try:
+    sphinx_build(args);
   
-#  try:
-#    if _SNIPPER_DEBUG: 
-#      unmute_std();
-#  except:
-#    pass
-  
-  sphinx_build(args);
-  #unmute_std();
-  
-  # Write README file. 
-  write_readme(os.path.join(dir_path,"README.txt"));
-  
-  print "Wrote HTML report to: %s" % html_path;
-  
-  report_index = os.path.join(html_path,"index.html");
-  print "Please open %s to view the report." % report_index;
+    print "Wrote HTML report to: %s" % html_path;
+    
+    report_index = os.path.join(html_path,"index.html");
+    print "Please open %s to view the report." % report_index;
+  except:
+    raise;
 
 def make_text(settings,gene_symbols,scandb_results,direct_ints):
   dir_path = settings.outdir;
@@ -771,65 +800,48 @@ def print_sep(out):
     out.write('=');
   out.write("\n");
 
-#def run_gene(settings):
-#  print >> sys.stderr, "Looking up information for genes @ NCBI..";
-#  symbols = settings.genes;
-#  terms = settings.terms;
-#  pnum = settings.pnum;
-#  per_term = settings.per_term;
-#  bad_symbs = Gene.populate(symbols);
-#
-#  # Remove symbols that couldn't be found at NCBI. 
-#  for symb in bad_symbs:
-#    print >> sys.stderr, "Warning: no information found for gene " + str(symb);
-#    symbols.remove(symb);
-#
-#  terms = settings.terms;
-#  if settings.omim:
-#    print >> sys.stderr, "Loading OMIM information..";
-#    Gene.loadOMIM( settings.genes );
-#
-#  if settings.pubmed:
-#    print >> sys.stderr, "Loading Pubmed information..";
-#    Gene.loadPubmed( settings.genes,terms,pnum,per_term );
-#
-#  if settings.gene_rif:
-#    print >> sys.stderr, "Loading GeneRIFs..";
-#    Gene.loadGeneRIF( settings.genes );
-#
-#  for symb in symbols:
-#    gene = Gene.valueOf(symb);
-#    for term in terms:
-#      gene.search(term);
-#
-#  Gene.writeAll(symbols,settings.output_file);
-
-# Main entry point. 
-def main(): 
-  settings = Settings();
-  settings.getCmdLine();
-  
-  print_program_header();
-
-  # Were there arguments? 
-  if len(sys.argv) <= 1:
-    die("Nothing to do.. try -h for help.");
-
+def check_ncbi():
   # Check to see if services are online and available. 
   sys.stderr.write("Checking NCBI status.. ");
   ncbi_status = check_ncbi_status();
   if not ncbi_status[0]:
     sys.stderr.write("[FAIL]" + os.linesep);
-    print >> sys.stderr, "Error: could not reach NCBI."
-    print >> sys.stderr, fill("Snipper requires the ability to query NCBI in order to "
-                          "function. It appears NCBI cannot be reached currently. This "
-                          "could be caused by your firewall settings, or NCBI may be "
-                          "offline temporarily. ");
-    sys.exit(1);
+    msg = ("Error: could not reach NCBI. Snipper requires the ability to query NCBI in order to "
+          "function. It appears NCBI cannot be reached currently. This "
+          "could be caused by your firewall settings, or NCBI may be "
+          "offline temporarily. ");
+    raise Exception, msg;
   else:
     sys.stderr.write("[OK]" + os.linesep);
 
-  run_snipper(settings);
+# Main entry point. 
+def main(): 
+  settings = Settings();
+
+  # If there are no arguments, try to launch the UI. 
+  if len(sys.argv) <= 1:
+    try:
+      import ui
+      ui.main();
+    except:
+      print >> sys.stderr, fill("I tried to start the GUI since no arguments were given, but "
+                        "it failed (you may not have a python interpreter compiled "
+                        "against Tk.) Check the documentation for more info on this. "
+                        "In the meantime, you can run Snipper in command-line mode by "
+                        "supplying arguments. For a list, use -h. ");
+      sys.exit(1);
+  else:
+    # Run in console mode. 
+    try:
+      settings.getCmdLine();
+      print_program_header();
+      run_snipper(settings);
+    except:
+      if _SNIPPER_DEBUG:
+        print_debug();
+      else:
+        print sys.exc_value;
 
 if __name__ == "__main__":
+  freeze_support();
   main();

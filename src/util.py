@@ -313,11 +313,6 @@ def periodCheck(string):
 
   return string;
 
-# Die with a message.                                                                                   
-def die(msg):                                                                                           
-  print msg;
-  sys.exit(1);
-
 # Iterator to flatten nested structures. 
 def iter_flatten(iterable):
   it = iter(iterable)

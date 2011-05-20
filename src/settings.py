@@ -245,10 +245,12 @@ class Settings(object):
     self._scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
     self.mimi = True;               # search MiMi for interactions between genes?
     self.outdir = os.path.join(os.getcwd(),"snipper_report") ; # output directory
-    self.console = False;           # write text output directly to console
+    self.overwrite = True;         # overwrite directory if exists already
+    self.warn_overwrite = False;     # warn before overwriting directory
     self.db_file = None;            # database file for snp positions & genes
     self._build = None;              # human genome build for snp/gene positions
     self.valid_builds = set();      # builds available for use (conf file)
+    self.console = False;
 
     self.conf = findConfigFile();
     self.getConfigFile(self.conf);
@@ -423,11 +425,16 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     parser.add_option("--each-term",dest="per_term",default=False,action="store_true",help=each_term_help);
     parser.add_option("--all",dest="all",action="store_true",default=True,help=SUPPRESS_HELP);
     parser.add_option("-o","--out",dest="outdir",default=self.outdir,help="Directory to use for storing output. This should be a directory that does not exist yet.");
-    parser.add_option("--console",dest="console",action="store_true",default=self.console,help="Disable creating a directory of output, instead write textual output to console.");
     parser.add_option("--debug",dest="debug",action="store_true",default=False,help=SUPPRESS_HELP);
 
     # Parse args. 
     (options,args) = parser.parse_args();
+
+    # Was debug enabled?
+    if options.debug:
+      __builtin__._SNIPPER_DEBUG = True;
+    else:
+      __builtin__._SNIPPER_DEBUG = False;
 
     # If there are positional arguments, there was an error on the command line. 
     # Let them know the potential problem. 
@@ -436,19 +443,6 @@ If you have a very large set of genes and search terms, this can take a VERY lon
       print >> sys.stderr, "Most likely, you simply forgot to surround the entire argument in quotes."
       print >> sys.stderr, "Example: -g \"RB1, TCF7L2\" is correct, whereas -g \"RB1\" \"TCF7L2\" is wrong."
       sys.exit(1);
-
-    # Discover mode of operation. 
-    if options.snpfile != None or options.snp != None:
-      self.mode = 'snp';
-    elif options.regions != None and len(options.regions) > 0:
-      self.mode = 'snp';
-    elif options.gene != None:
-      self.mode = 'gene';
-    else:
-      sys.exit("Error: at least one of --snp, --gene, or --regions must be supplied.");
-
-    # Output? 
-    self.console = options.console;
 
     # Human genome build. 
     if options.build:
@@ -511,21 +505,15 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     
     # Check the output directory specified by the user.
     # It should not already exist. 
-    if not self.console:
+    if len(sys.argv) > 1:
       self.outdir = options.outdir;
       if os.path.exists(self.outdir):
         msg = "Error: output directory already exists: %s\n"\
               "Please rename or move this directory, or use "\
-              "--output or -o to change the directory name." % dir_name;
-        die(msg);
+              "--output or -o to change the directory name." % self.outdir;
+        sys.exit(msg);
       else:
         mkpath(self.outdir);
-      
-    # Was debug enabled?
-    if options.debug:
-      __builtin__._SNIPPER_DEBUG = True;
-    else:
-      __builtin__._SNIPPER_DEBUG = False;
 
   # Check that we have info for the given build. 
   def checkBuild(self,build):
@@ -582,27 +570,32 @@ If you have a very large set of genes and search terms, this can take a VERY lon
       if "hg" in sec:
         self.valid_builds.add(sec);
 
+  def __str__(self):
+    s = [];
+    s.append( "Snipper settings:");
+    s.append( "-----------------");
+    s.append( "Set of SNPs: " + str(self.snpset));
+    s.append( "Set of genes: " + str(self.genes));
+    s.append( "Set of regions: " + str([str(i) for i in self.regions]));
+    s.append( "Distance: " + str(self.distance));
+    s.append( "Num genes: " + str(self.num_genes));
+    s.append( "Search terms: " + str(self.terms));
+    s.append( "Use OMIM: " + str(self.omim));
+    s.append( "Use Pubmed: " + str(self.pubmed));
+    s.append( "Use SCAN: " + str(self.scandb));
+    s.append( "Use GeneRIF: " + str(self.gene_rif));
+    s.append( "SCAN p-value thresh: " + str(self.scandb_pval));
+    s.append( "Num articles: " + str(self.pnum));
+    s.append( "Per term: " + str(self.per_term));
+    s.append( "Output directory: " + str(self.outdir));
+    s.append( "Build: " + str(self.build));
+    s.append( "Valid builds: " + str(self.valid_builds));
+    s.append( "Database: " + str(self.db_file));
+    return os.linesep.join(s);
+
   # Print a summary of all current settings. 
   def write(self,out=sys.stdout):
-    print >> out, "Snipper settings:";
-    print >> out, "-----------------";
-    print >> out, "Set of SNPs: " + str(self.snpset);
-    print >> out, "Set of genes: " + str(self.genes);
-    print >> out, "Set of regions: " + str([str(i) for i in self.regions]);
-    print >> out, "Distance: " + str(self.distance);
-    print >> out, "Num genes: " + str(self.num_genes);
-    print >> out, "Search terms: " + str(self.terms);
-    print >> out, "Use OMIM: " + str(self.omim);
-    print >> out, "Use Pubmed: " + str(self.pubmed);
-    print >> out, "Use SCAN: " + str(self.scandb);
-    print >> out, "Use GeneRIF: " + str(self.gene_rif);
-    print >> out, "SCAN p-value thresh: " + str(self.scandb_pval);
-    print >> out, "Num articles: " + str(self.pnum);
-    print >> out, "Per term: " + str(self.per_term);
-    print >> out, "Output directory: " + str(self.outdir);
-    print >> out, "Build: " + str(self.build);
-    print >> out, "Valid builds: " + str(self.valid_builds);
-    print >> out, "Database: " + str(self.db_file);
+    print >> out, str(self);
 
 if __name__ == "__main__":
   pass
