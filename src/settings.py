@@ -30,6 +30,7 @@ import sys
 import os
 import os.path as path
 import re
+import platform
 import __builtin__
 
 def parseTerms(term_string):
@@ -244,7 +245,6 @@ class Settings(object):
     self.scandb = True;             # search scandb for eqtls?
     self._scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
     self.mimi = True;               # search MiMi for interactions between genes?
-    self.outdir = os.path.join(os.getcwd(),"snipper_report") ; # output directory
     self.overwrite = True;         # overwrite directory if exists already
     self.warn_overwrite = False;     # warn before overwriting directory
     self.db_file = None;            # database file for snp positions & genes
@@ -254,7 +254,12 @@ class Settings(object):
 
     self.conf = findConfigFile();
     self.getConfigFile(self.conf);
-      
+
+    if 'windows' in platform.system().lower():
+      self.outdir = os.path.join(os.environ['USERPROFILE'],"Desktop","snipper_report");
+    else:
+      self.outdir = os.path.join(os.getcwd(),"snipper_report") ; # output directory
+    
     try:
       if _SNIPPER_DEBUG: 
         self.write();

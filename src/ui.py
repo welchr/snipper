@@ -221,9 +221,10 @@ class SnipperUI():
       dir = current_dir;
     else:
       if os.path.exists(dir):
-        showerror(title="Error",message="Directory already exists - please specify a directory that does not exist.");
-        dir = current_dir;
-    
+        if not self.settings.overwrite:
+          showerror(title="Error",message="Directory already exists - please specify a directory that does not exist.");
+          dir = current_dir;
+
     self.entryOutdir.delete(0,END);
     self.entryOutdir.insert(0,dir);
     
