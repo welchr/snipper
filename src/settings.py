@@ -246,7 +246,7 @@ class Settings(object):
     self._scandb_pval = 0.0001;      # p-value threshold to be called an eQTL
     self.mimi = True;               # search MiMi for interactions between genes?
     self.overwrite = True;         # overwrite directory if exists already
-    self.warn_overwrite = False;     # warn before overwriting directory
+    self.warn_overwrite = True;     # warn before overwriting directory
     self.db_file = None;            # database file for snp positions & genes
     self._build = None;              # human genome build for snp/gene positions
     self.valid_builds = set();      # builds available for use (conf file)

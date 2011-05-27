@@ -279,17 +279,17 @@ def run_snipper(settings):
   
   # If OMIM is specified, load OMIM data. 
   if settings.omim:
-    print >> sys.stderr, "Loading OMIM information..";
+    print >> sys.stderr, "Querying NCBI for OMIM information..";
     Gene.loadOMIM(gene_symbols);  
 
   # If Pubmed specified, load Pubmed information. 
   if settings.pubmed:
-    print >> sys.stderr, "Loading Pubmed information..";
+    print >> sys.stderr, "Querying NCBI for Pubmed information..";
     Gene.loadPubmed(gene_symbols,settings.terms,settings.pnum,settings.per_term);
 
   # If GeneRIF..
   if settings.gene_rif:
-    print >> sys.stderr, "Loading GeneRIFs..";
+    print >> sys.stderr, "Querying NCBI for GeneRIFs..";
     Gene.loadGeneRIF(gene_symbols);
 
   # Now, we need to check search terms. Each gene has a soup we can search in. 
@@ -316,7 +316,6 @@ def run_snipper(settings):
       direct_ints
     );
     
-    print "Creating text report..";
     make_text(
       settings,
       gene_symbols,
@@ -374,17 +373,10 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
     from sphinx.cmdline import main as sphinx_build
   except:
     raise Exception("Error: sphinx is not installed.");
-
-# Code does not work in Windows
-#  args = "%s -b html -c %s %s %s" % (
-#    core_path,
-#    core_path,
-#    rst_path,
-#    html_path
-#  );
   
   args = [
     core_path,
+    "-Q",
     "-b",
     "html",
     "-c",
@@ -395,11 +387,9 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
   
   try:
     sphinx_build(args);
-  
-    print "Wrote HTML report to: %s" % html_path;
-    
+
     report_index = os.path.join(html_path,"index.html");
-    print "Please open %s to view the report." % report_index;
+    print "HTML report created: %s." % report_index;
   except:
     raise;
 
