@@ -44,7 +44,7 @@ __builtin__._SNIPPER_DEBUG = False;
 
 PROG_VERSION = "1.2";
 PROG_VERSION_STRING = "Version %s   " % PROG_VERSION;
-PROG_DATE = "03-16-2011";
+PROG_DATE = "06-02-2011";
 NUM_GENES_WARN = 50;
 
 def get_core_path():
