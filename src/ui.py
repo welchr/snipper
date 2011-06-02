@@ -512,8 +512,8 @@ class Console(Toplevel):
       self.queue.put(sys.exc_value);
 
   def busy(self):
-    self.config(cursor="wait");
-    self.text.config(cursor="wait");
+    self.config(cursor="watch");
+    self.text.config(cursor="watch");
     self.buttonOpenBrowser.config(state=DISABLED);
     self.buttonSaveLog.config(state=DISABLED);
     self.buttonCancel.config(state=NORMAL);

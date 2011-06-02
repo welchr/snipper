@@ -63,17 +63,6 @@ def install_deps():
   os.system("%s %s" % (env_paths['easy_install'],"sphinx")); 
   
 def test_deps():
-  # Trigger reload of site paths/modules. 
-  import site
-  
-  # Try to import sphinx. 
-  try:
-    import sphinx
-  except:
-    sys.exit("Error: sphinx was unable to install. Please make sure your "
-            "internet connection is available. You may also try "
-            "installing manually by visiting http://sphinx.pocoo.org/. ");
-            
   # Try to import sqlite3. 
   try:
     import sqlite3
