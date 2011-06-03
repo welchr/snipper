@@ -181,6 +181,7 @@ class SnipperUI():
     
     self.textSearch = Text(search_tab);
     self.textSearch.pack(side=TOP,padx=3,pady=3,expand=True,fill=BOTH,anchor=W);
+    self.textSearch.bind("<Control-a>",select_all);
     
     buttonClearSearch = ttk.Button(search_tab,text="Clear",command=self.clear_search);
     buttonClearSearch.pack(side=TOP,padx=3,pady=3,anchor=W);
