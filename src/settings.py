@@ -256,7 +256,10 @@ class Settings(object):
     self.getConfigFile(self.conf);
 
     if 'windows' in platform.system().lower():
-      self.outdir = os.path.join(os.environ['USERPROFILE'],"Desktop","snipper_report");
+      if len(sys.argv) > 1:
+        self.outdir = os.path.join(os.getcwd(),"snipper_report")
+      else:
+        self.outdir = os.path.join(os.environ['USERPROFILE'],"Desktop","snipper_report");
     else:
       self.outdir = os.path.join(os.getcwd(),"snipper_report") ; # output directory
     
@@ -430,6 +433,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     parser.add_option("--each-term",dest="per_term",default=False,action="store_true",help=each_term_help);
     parser.add_option("--all",dest="all",action="store_true",default=True,help=SUPPRESS_HELP);
     parser.add_option("-o","--out",dest="outdir",default=self.outdir,help="Directory to use for storing output. This should be a directory that does not exist yet.");
+    parser.add_option("--console",dest="console",action="store_true",default=self.console,help="Write results to console, instead of creating directory with HTML/text results.");
     parser.add_option("--debug",dest="debug",action="store_true",default=False,help=SUPPRESS_HELP);
 
     # Parse args. 
@@ -448,6 +452,9 @@ If you have a very large set of genes and search terms, this can take a VERY lon
       print >> sys.stderr, "Most likely, you simply forgot to surround the entire argument in quotes."
       print >> sys.stderr, "Example: -g \"RB1, TCF7L2\" is correct, whereas -g \"RB1\" \"TCF7L2\" is wrong."
       sys.exit(1);
+
+    # Console mode? 
+    self.console = options.console;
 
     # Human genome build. 
     if options.build:
@@ -510,7 +517,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     
     # Check the output directory specified by the user.
     # It should not already exist. 
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 1 and not self.console:
       self.outdir = options.outdir;
       if os.path.exists(self.outdir):
         msg = "Error: output directory already exists: %s\n"\

@@ -14,17 +14,19 @@ from shutil import rmtree
 py2 = py30 = py31 = False
 version = sys.hexversion
 if version >= 0x020600F0 and version < 0x03000000 :
-    py2 = True    # Python 2.6 or 2.7
-    from Tkinter import *
-    import ttk
+  py2 = True    # Python 2.6 or 2.7
+  from Tkinter import *
+  import ttk
 elif version >= 0x03000000 and version < 0x03010000 :
-    py30 = True
-    from tkinter import *
-    import ttk
+  py30 = True
+  from tkinter import *
+  import ttk
 elif version >= 0x03010000:
-    py31 = True
-    from tkinter import *
-    import tkinter.ttk as ttk
+  py31 = True
+  from tkinter import *
+  import tkinter.ttk as ttk
+else:
+  raise ImportError, "Could not import Tkinter - see documentation for more info.";
 
 from tkFileDialog import *
 from tkMessageBox import *
@@ -36,8 +38,8 @@ class SnipperUI():
   def __init__(self,root=None):
     root = Tk();
     self.root = root;
-    root.geometry('445x635+50+50');
-    root.minsize(445,635);
+    root.geometry('460x635+50+50');
+    root.minsize(460,635);
     
     style = ttk.Style();
     theme = style.theme_use();
@@ -49,7 +51,7 @@ class SnipperUI():
     filemenu = Menu(menubar,tearoff=0);
     filemenu.add_command(label="Run Snipper..",command=self.run);
     filemenu.add_separator();
-    filemenu.add_command(label="Exit",command=todo);
+    filemenu.add_command(label="Exit",command=root.destroy);
     menubar.add_cascade(label="File",menu=filemenu);
     
     helpmenu = Menu(menubar,tearoff=0);
@@ -69,11 +71,17 @@ class SnipperUI():
     notebook.add(genome_tab,padding=3);
     notebook.tab(0,text="Genome",underline="-1");
     
-    label1 = Label(genome_tab,text="Enter a list of genomic regions:");
+    label1 = Label(genome_tab,text="Enter a list of SNPs, genes, and chromosomal regions (one per line):");
     label1.pack(side=TOP,anchor=W,padx=3,pady=5);
     
     self.textRegions = Text(genome_tab);
     self.textRegions.pack(side=TOP,expand=True,fill=BOTH,padx=3,pady=3);
+    
+    def select_all(event):
+      event.widget.tag_add('sel',1.0,'end');
+      return "break";
+    
+    self.textRegions.bind("<Control-a>",select_all)
     
     buttonFrame = Frame(genome_tab);
     buttonFrame.pack(side=TOP,fill=X,padx=3,pady=3);
