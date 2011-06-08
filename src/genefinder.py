@@ -72,11 +72,7 @@ class GeneFinder:
             node['dist'],
             node['updown']
           );
-        
-#        g.chrom = node['chr'];
-#        g.txStart = node['txStart'];
-#        g.txEnd = node['txEnd'];
-        
+
   def find(self,snps,dist,num):
     raise NotImplementedError;
 
