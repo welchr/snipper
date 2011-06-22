@@ -24,6 +24,7 @@ import os
 import re
 import prettytable
 import shelve
+import traceback
 from time import sleep
 from ncbi import *
 from pubmed import *
@@ -804,7 +805,6 @@ class Gene:
       gene.user_requested = True;
 
   # Load GeneRIF information for specified genes. 
-  # This is only loaded optionally.. it's a lot of junk. 
   @staticmethod
   def loadGeneRIF(symbols=set()):
     if not isIterable(symbols):
@@ -857,7 +857,16 @@ class Gene:
       omim_info.pop('None');
 
     # Get the soup for all OMIM IDs. 
-    soup = fetchOMIMSoup(omim_info.keys());
+    try:
+      soup = fetchOMIMSoup(omim_info.keys());
+    except:
+      print >> sys.stderr, fill("Error: NCBI did not respond to our query for OMIM "
+                            "information, it will be skipped for this run.. ");
+      
+      if _SNIPPER_DEBUG:
+        traceback.print_exc();
+      
+      return;
 
     # Process the soup and store info. 
     for omim_id in omim_info:
@@ -888,7 +897,16 @@ class Gene:
         uid_symbol[uid] = symb;
 
     # Next, lookup articles for each UID. 
-    pubmed_data = findPubmed( uid_symbol.keys() );
+    try:
+      pubmed_data = findPubmed( uid_symbol.keys() );
+    except:
+      print >> sys.stderr, fill("Error: NCBI did not respond to our query for PubMed "
+                                "information, it will be skipped for this run.. ");
+      
+      if _SNIPPER_DEBUG:
+        traceback.print_exc();
+      
+      return;
 
     # Store the number of articles found, and 
     # also store the top "pnum" articles. 

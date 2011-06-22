@@ -130,11 +130,8 @@ def soupify(url):
     msg += "** Error was: " + str(sys.exc_info()[1]);
     raise Exception, msg;
 
-  # Allow at most 2 queries per second. 
-  # This would be more efficient in a queuing system, but in practice, 
-  # this works just fine. 
-  # And yes, all NCBI queries must pass through this method. 
-  sleep(0.8);
+  # Rate limit queries. 
+  sleep(1);
   
   return soup;
 
