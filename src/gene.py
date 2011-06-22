@@ -1074,8 +1074,8 @@ class Gene:
       # Insert into "database."
       Gene._UID[uid] = gene;
       Gene._SYMB[symbol] = gene;
-      for syn in syns:
-        Gene._SYMB[syn] = gene;
+#      for syn in syns:
+#        Gene._SYMB[syn] = gene;
 
     # Return a list of symbols that couldn't be found. 
     bad_symbs = list();
