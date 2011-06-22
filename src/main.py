@@ -222,8 +222,9 @@ def run_snipper(settings):
   finder.find(snps_normal,settings.distance,settings.num_genes);
   finder.find1000G(snps_1000G,settings.distance,settings.num_genes);
   
-  print >> sys.stderr, "Finding genes within provided chromosomal regions..";
-  finder.findRegions(settings.regions);
+  if len(settings.regions) > 0:
+    print >> sys.stderr, "Finding genes within provided chromosomal regions..";
+    finder.findRegions(settings.regions);
   
   finder_genes = finder.getGenesByNearest();
   print >> sys.stderr, ".. found %i gene(s)!" % len(finder_genes);
