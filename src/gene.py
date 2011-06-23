@@ -79,6 +79,7 @@ class Gene:
     self.txStart = None;
     self.txEnd = None;
     self.genome_region = None;
+    self.populated = False;
 
   # Entrez UID. 
   def setUID(self,uid):
@@ -271,14 +272,6 @@ class Gene:
   def countAllSNP(self):
     return len(self.snps);
 
-  # Was this gene populated with data? 
-  def isPopulated(self):
-    status = True;
-    if self.soup == None:
-      status = False;
-
-    return status;
-
   # Print this gene. Takes in a file object to print to. 
   # If nothing is passed, it assumes STDOUT. 
   def write(self,out=sys.stdout,wrap_lines=True):
@@ -294,8 +287,8 @@ class Gene:
 
     # If request is to write a non-populated gene (not sure how this can happen!)
     # print something different. 
-    if not self.isPopulated():
-      print >> sys.stderr, "Warning: no information found for gene " + str(self.symb);
+    if not self.populated:
+      print >> sys.stderr, "Warning: no information found for gene %s.." % str(self.symb);
       return;
 
     # Description of the gene. 
@@ -804,19 +797,6 @@ class Gene:
       gene = Gene.valueOf(g);
       gene.user_requested = True;
 
-  # Load GeneRIF information for specified genes. 
-  @staticmethod
-  def loadGeneRIF(symbols=set()):
-    if not isIterable(symbols):
-      raise Exception, "You must pass a list or set of symbols to loadGeneRIF.";
- 
-    for symb in symbols:
-      gene = Gene.valueOf(symb);
-      soup = gene.getSoup();
-
-      if soup != None:
-        gene.gene_rifs = extractGeneRIF( soup );
-
   @staticmethod
   def loadPositions(finder): 
     seen = {};
@@ -1007,7 +987,7 @@ class Gene:
   # If you pass in a symbol or uid that cannot be found, 
   # it will be returned in a list. 
   @staticmethod
-  def populate(symbols=set(),uids=set(),verbose=True):
+  def populate(symbols=set(),uids=set(),generif=False,verbose=True):
     # Filter out any gene symbols we already know about. 
     symbol_list = filter(lambda x: not Gene._SYMB.has_key(x),list(symbols));
 
@@ -1036,46 +1016,51 @@ class Gene:
     except:
       pass
     
-    soup = fetchGeneSoup(final_uids);
-    for uid in final_uids:
-      root = findUIDRoot(soup,uid);
-
-      # Has this gene record been discontinued? 
-      if isDiscontinued(root):
-        continue;
-
-      symbol = extractSymb(root);
-      syns = extractSyns(root);
-
-      # If the symbol is null, this is a weird gene. 
-      # I don't know why NCBI would populate them without a symbol, but they do. 
-      # So, we'll just set the symbol to be whatever was passed in. 
-      if symbol == 'None' or symbol == None:
-        symbol = findCorrectSymbol(symbol_list,root);
-
-      if verbose:
-        print >> sys.stderr, "Parsing gene %s.." % symbol;
-
-      # Grab information for the gene. 
-      gene = Gene.valueOf(symbol);
-      gene.setUID( uid );
-      gene.setSymbol( symbol );
-      gene.setSyns( syns );
-      gene.setType( extractType(root) );
-      gene.setLoc( extractLocus(root) );
-      gene.setSummary( extractSummary(root) );
-      gene.setGO( extractGO(root) );
-      gene.setPhenotypes( extractPhenotypes(root) );
-      gene.setOMIM( extractOMIM(root) );
-      gene.setDesc( extractDesc(root) );
-      gene.setKEGG( extractKEGG(root) );
-      gene.setSoup( root );
-
-      # Insert into "database."
-      Gene._UID[uid] = gene;
-      Gene._SYMB[symbol] = gene;
-#      for syn in syns:
-#        Gene._SYMB[syn] = gene;
+    for uid_sub in subsets(final_uids,25):
+      soup = fetchGeneSoup(uid_sub);
+      for uid in uid_sub:
+        root = findUIDRoot(soup,uid);
+  
+        # Has this gene record been discontinued? 
+        if isDiscontinued(root):
+          continue;
+  
+        symbol = extractSymb(root);
+        syns = extractSyns(root);
+  
+        # If the symbol is null, this is a weird gene. 
+        # I don't know why NCBI would populate them without a symbol, but they do. 
+        # So, we'll just set the symbol to be whatever was passed in. 
+        if symbol == 'None' or symbol == None:
+          symbol = findCorrectSymbol(symbol_list,root);
+  
+        if verbose:
+          print >> sys.stderr, "Parsing gene %s.." % symbol;
+  
+        # Grab information for the gene. 
+        gene = Gene.valueOf(symbol);
+        gene.setUID(uid);
+        gene.setSymbol(symbol);
+        gene.setSyns(syns);
+        gene.setType( extractType(root) );
+        gene.setLoc( extractLocus(root) );
+        gene.setSummary( extractSummary(root) );
+        gene.setGO( extractGO(root) );
+        gene.setPhenotypes( extractPhenotypes(root) );
+        gene.setOMIM( extractOMIM(root) );
+        gene.setDesc( extractDesc(root) );
+        gene.setKEGG( extractKEGG(root) );
+        
+        if generif:
+          gene.gene_rifs = extractGeneRIF(root);
+  
+        gene.populated = True;
+  
+        # Insert into "database."
+        Gene._UID[uid] = gene;
+        Gene._SYMB[symbol] = gene;
+  #      for syn in syns:
+  #        Gene._SYMB[syn] = gene;
 
     # Return a list of symbols that couldn't be found. 
     bad_symbs = list();
@@ -1083,5 +1068,5 @@ class Gene:
       if not Gene._SYMB.has_key(symb):
         bad_symbs.append(symb);
         print >> sys.stderr, "Warning: no information found for gene %s.." % str(symb);
-        
+    
     return bad_symbs;

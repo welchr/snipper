@@ -74,13 +74,14 @@ def print_genes_per_snp(out,gene_symbols):
 
   format_string = "%-12s %s";
   
-  print >> out, format_string % ('SNP','Gene/Aliases');
-  print >> out, format_string % ('---','------------');
-  for snp,genelist in snp_gene.iteritems():
-    for genes in genelist:
-      print >> out, format_string % (snp,genes);
-
-  print >> out, "";
+  if len(snp_gene) > 0:
+    print >> out, format_string % ('SNP','Gene/Aliases');
+    print >> out, format_string % ('---','------------');
+    for snp,genelist in snp_gene.iteritems():
+      for genes in genelist:
+        print >> out, format_string % (snp,genes);
+  
+    print >> out, "";
 
 def print_summary(settings,out,gene_symbols):
   # Create the format string. 
@@ -209,25 +210,28 @@ def run_snipper(settings):
   
   # Find the genes lying near the SNPs. 
   finder = SQLiteGeneFinder(settings.db_file);
-  print >> sys.stderr, "Locating genes near provided SNPs..";
   
-  snps_normal = [];
-  snps_1000G = [];
-  for snp in settings.snpset:
-    if "chr" in snp:
-      snps_1000G.append(snp);
-    else:
-      snps_normal.append(snp);
-  
-  finder.find(snps_normal,settings.distance,settings.num_genes);
-  finder.find1000G(snps_1000G,settings.distance,settings.num_genes);
+  if len(settings.snpset) > 0:
+    print >> sys.stderr, "Locating genes near provided SNPs..";
+    
+    snps_normal = [];
+    snps_1000G = [];
+    for snp in settings.snpset:
+      if "chr" in snp:
+        snps_1000G.append(snp);
+      else:
+        snps_normal.append(snp);
+    
+    finder.find(snps_normal,settings.distance,settings.num_genes);
+    finder.find1000G(snps_1000G,settings.distance,settings.num_genes);
   
   if len(settings.regions) > 0:
     print >> sys.stderr, "Finding genes within provided chromosomal regions..";
     finder.findRegions(settings.regions);
   
   finder_genes = finder.getGenesByNearest();
-  print >> sys.stderr, ".. found %i gene(s)!" % len(finder_genes);
+  if len(settings.snpset) > 0 or len(settings.regions) > 0:
+    print >> sys.stderr, ".. found %i gene(s)!" % len(finder_genes);
 
   # If the number of genes is rather large, warn the user that this might be a 
   # bit too large of a task. 
@@ -257,8 +261,8 @@ def run_snipper(settings):
   # They are ordered in terms of "importance." 
   gene_symbols = remove_duplicates(user_genes,scandb_genes,finder_genes);
   
-  print >> sys.stderr, "Downloading information from NCBI on %i genes.." % len(gene_symbols);
-  Gene.populate(gene_symbols);
+  print >> sys.stderr, "Downloading gene information from NCBI..";
+  Gene.populate(gene_symbols,generif=settings.gene_rif);
   
   # Add SNP position and eQTL info to database, after symbols have been resolved to gene objects.
   finder.loadGeneDB();
@@ -287,11 +291,6 @@ def run_snipper(settings):
   if settings.pubmed:
     print >> sys.stderr, "Querying NCBI for Pubmed information..";
     Gene.loadPubmed(gene_symbols,settings.terms,settings.pnum,settings.per_term);
-
-  # If GeneRIF..
-  if settings.gene_rif:
-    print >> sys.stderr, "Querying NCBI for GeneRIFs..";
-    Gene.loadGeneRIF(gene_symbols);
 
   # Now, we need to check search terms. Each gene has a soup we can search in. 
   if len(settings.terms) > 0:

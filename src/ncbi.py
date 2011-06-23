@@ -43,7 +43,7 @@ OMIM_URL = r"http://www.ncbi.nlm.nih.gov/entrez/dispomim.cgi";
 # If this fails, there's either a problem with the internet connection, 
 # or NCBI has banned this address (I don't have a way of knowing which, yet.) 
 def check_ncbi_status():
-  test_query = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=gene&id=23603&retmode=xml";
+  test_query = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/einfo.fcgi?db=gene";
   try:
     response = urllib2.urlopen(test_query);
   except:
