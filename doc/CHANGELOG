@@ -1,52 +1,33 @@
-1.2 Release (03/16/2011):
+1.2 Release (06/23/2011):
 -------------------------
 New features: 
--- Support for switching between different builds using the --build parameter
-(hg18 and hg19 included by default) 
--- A test dataset has been included in example/ to test that Snipper has
-installed correctly
--- SNP names that were merged into new names in a later human genome build 
-are now detected and converted automatically. These will appear in the 
-"User Settings" section of the HTML report, and as warnings in the console
-output. 
--- Initial support for 1000G naming convention on SNPs (e.g. chr4:3939393) when using
--s, --snp, and --snpfile
+-- Support for switching between different builds using the --build parameter (hg18 and hg19 included by default) 
+-- A test dataset has been included in example/ to test that Snipper has installed correctly
+-- SNP names that were merged into new names in a later human genome build are now detected and converted automatically. These will appear in the  "User Settings" section of the HTML report, and as warnings in the console output. 
+-- Initial support for 1000G naming convention on SNPs (e.g. chr4:3939393) when using -s, --snp, and --snpfile
+-- Drastically reduced memory required
 
 Changes: 
--- Setup script now checks to make sure python version is correct before
-attempting to install
--- User requested genes (-g, --genes) are now properly included in the HTML
-report
--- Snipper now informs the user where the HTML report has been written at the
-end of the console output
--- README.txt in output folder now includes the command line used to run
-Snipper
--- The "region table" in the gene information section now lists genes
-separately for nearby genes and eQTL genes, and also orders them by their
-position in the genome. 
--- The user is now warned if the number of genes seems excessive and may cause
-long runtimes or memory usage 
--- Fixed unclear text regarding whether certain settings were enabled (--omim,
---generif, --pubmed, etc.) 
--- Input information report now includes the build that was used to find the
-position of genes and SNPs
+-- Setup script now checks to make sure python version is correct before attempting to install
+-- User requested genes (-g, --genes) are now properly included in the HTML report
+-- Snipper now informs the user where the HTML report has been written at the end of the console output
+-- README.txt in output folder now includes the command line used to run Snipper
+-- Report directory now contains a copy of the plaintext output (that would normally have been generated on the console), eliminating the need to run snipper twice if one wants the text output as well as the HTML
+-- The "region table" in the gene information section now lists genes separately for nearby genes and eQTL genes, and also orders them by their position in the genome. 
+-- The user is now warned if the number of genes seems excessive and may cause long runtimes or memory usage 
+-- Fixed unclear text regarding whether certain settings were enabled (--omim, --generif, --pubmed, etc.) 
+-- Input information report now includes the build that was used to find the position of genes and SNPs
 -- GPL license now included in distribution
--- Many documentation updates including new format of HTML output, updates to
-the options table to include new options
+-- Many documentation updates including new format of HTML output, updates to the options table to include new options
 
 Bugs: 
--- Fixed a big where search terms that had spaces would sometimes not be
-correctly identified as one whole word. Note that --terms should be enclosed
-in quotations, for example: --terms "type 2 diabetes, metabolic syndrome"
--- Fixed a bug where not all genes were found near a SNP if two transcripts
-occurred on opposite strands 
--- Fixed a bug where running -g with only 1 gene would cause a crash in some
-cases
+-- Fixed a bug where search terms that had spaces would sometimes not be correctly identified as one whole word. Note that --terms should be enclosed in quotations, for example: --terms "type 2 diabetes, metabolic syndrome"
+-- Fixed a bug where not all genes were found near a SNP if two transcripts occurred on opposite strands 
+-- Fixed a bug where running -g with only 1 gene would cause a crash in some cases
 -- Fixed paper references in OMIM text from having strange formatting
--- Fixed OMIM ID references in OMIM text to now link directly to the OMIM
-article itself (formatting has been fixed as well)
--- Fixed dead "index" link in upper-right section of report. This feature may
-return in the future when an index is actually built. :) 
+-- Fixed OMIM ID references in OMIM text to now link directly to the OMIM article itself (formatting has been fixed as well)
+-- Fixed dead "index" link in upper-right section of report. This feature may return in the future when an index is actually built. :) 
+-- Fixed an issue with genes whose synonyms were genes themselves (now properly lists the correct gene)
 
 1.1 Release (11/10/2010):
 -------------------------

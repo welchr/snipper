@@ -118,16 +118,17 @@ class eQTLSet():
     for f in fields:
       t.set_field_align(f,'l');
     
-    for q in self.qtls:
-      t.add_row([
-        q.snp,
-        ":ref:`%s`" % q.gene,
-        q.tissue,
-        q.population,
-        q.organism,
-        str(q.pval),
-        q.source
-      ]);
+    for snp,eqtls in self.snp_ptrs.iteritems():
+      for q in eqtls:
+        t.add_row([
+          q.snp,
+          ":ref:`%s`" % q.gene,
+          q.tissue,
+          q.population,
+          q.organism,
+          str(q.pval),
+          q.source
+        ]);
     
     print >> out, t.get_string(hrules=prettytable.ALL,rest=True);
   
