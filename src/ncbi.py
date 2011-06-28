@@ -121,6 +121,8 @@ def soupify(url):
 
   try:
     soup = BeautifulStoneSoup(urllib2.urlopen(url));
+  except KeyboardInterrupt:
+    raise;
   except:
     msg = "";
     msg += "** Looks like a network error occurred when trying to contact NCBI.";

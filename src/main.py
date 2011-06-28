@@ -57,9 +57,9 @@ def print_program_header():
   print >> sys.stderr, "+------------------------------------------------+";
   print >> sys.stderr, "|  Snipper   |   %s  |   %s  |" % (PROG_VERSION_STRING,PROG_DATE);
   print >> sys.stderr, "+------------------------------------------------+";
-  print >> sys.stderr, "|     A utility for locating genes near SNPs     |";
-  print >> sys.stderr, "|                                                |";
-  print >> sys.stderr, "|      Author: Ryan Welch (welchr@umich.edu)     |";
+  print >> sys.stderr, "|     Contact: Ryan Welch (welchr@umich.edu)     |";
+  print >> sys.stderr, "|     Web: csg.sph.umich.edu/boehnke/snipper/    |";
+  print >> sys.stderr, "|     Github: github.com/welchr/Snipper/         |";
   print >> sys.stderr, "+------------------------------------------------+";
   print >> sys.stderr, "";
 
@@ -826,6 +826,9 @@ def main():
       settings.getCmdLine();
       print_program_header();
       run_snipper(settings);
+    except KeyboardInterrupt:
+      print >> sys.stderr, "";
+      print >> sys.stderr, "Program terminated by user.";
     except:
       if _SNIPPER_DEBUG:
         print_debug();

@@ -38,6 +38,7 @@ class Gene:
   # References to gene objects. 
   _SYMB = dict();
   _UID = dict();
+  _SYN = dict();
   
   # Constants for referring to locations in gene info. 
   SUMMARY = "Gene summary";
@@ -839,6 +840,8 @@ class Gene:
     # Get the soup for all OMIM IDs. 
     try:
       soup = fetchOMIMSoup(omim_info.keys());
+    except KeyboardInterrupt:
+      raise;
     except:
       print >> sys.stderr, fill("Error: NCBI did not respond to our query for OMIM "
                             "information, it will be skipped for this run.. ");
@@ -959,12 +962,12 @@ class Gene:
     # Populate pubmed database of articles. 
     Pubmed.populate(pop_articles);
 
-  # Flyweight method. Returns a gene if already seen before, 
-  # otherwise returns a new gene instance. 
   @staticmethod
   def valueOf(symb=None,uid=None):
     if symb != None:
       gene = Gene._SYMB.get(symb);
+      if gene == None:
+        gene = Gene._SYN.get(symb);
     elif uid != None:
       gene = Gene._UID.get(uid);
     else:
@@ -1059,14 +1062,14 @@ class Gene:
         # Insert into "database."
         Gene._UID[uid] = gene;
         Gene._SYMB[symbol] = gene;
-  #      for syn in syns:
-  #        Gene._SYMB[syn] = gene;
+        for syn in syns:
+          Gene._SYN[syn] = gene;
 
     # Return a list of symbols that couldn't be found. 
     bad_symbs = list();
     for symb in symbol_list:
-      if not Gene._SYMB.has_key(symb):
+      if not Gene._SYMB.has_key(symb) and not Gene._SYN.has_key(symb):
         bad_symbs.append(symb);
-        print >> sys.stderr, "Warning: no information found for gene %s.." % str(symb);
+        print >> sys.stderr, "Warning: could not find gene %s in data retrieved from NCBI.." % str(symb);
     
     return bad_symbs;
