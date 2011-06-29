@@ -535,7 +535,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     # Check to see if user's requested build is in conf file. 
     if not parser.has_section(build):
       raise ValueError, ("Error: the human genome build you have requested does not "
-                "exist on your system. Please use bin/setup_snipper.py to "
+                "exist on your system. Please use bin/build_db.py to "
                 "create a database file for this build, or download the "
                 "database file from our website. "
               );
