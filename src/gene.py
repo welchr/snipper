@@ -1070,6 +1070,5 @@ class Gene:
     for symb in symbol_list:
       if not Gene._SYMB.has_key(symb) and not Gene._SYN.has_key(symb):
         bad_symbs.append(symb);
-        print >> sys.stderr, "Warning: could not find gene %s in data retrieved from NCBI.." % str(symb);
     
     return bad_symbs;
