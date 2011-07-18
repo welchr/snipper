@@ -813,12 +813,13 @@ class Gene:
       seen[gene] = 1;
       
       (chrom,start,stop) = finder.getPos(gene.symb);
-      gene.chrom = chrom;
-      gene.txStart = start;
-      gene.txEnd = stop;
-      
-      chr = chrom2chr(chrom);
-      gene.genome_region = ChromRegion(chr,start,stop);
+      if None not in (chrom,start,stop):
+        gene.chrom = chrom;
+        gene.txStart = start;
+        gene.txEnd = stop;
+        
+        chr = chrom2chr(chrom);
+        gene.genome_region = ChromRegion(chr,start,stop);
 
   # Load OMIM information for specified genes. 
   # If the genes specified have not been populated previously, they will be after this call. 
