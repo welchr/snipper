@@ -509,8 +509,12 @@ class Gene:
       if gene.user_requested:
         user_genes.append(gene);
     
-    # Sort user-requested genes by genome position. 
-    user_genes = sorted(user_genes,key=lambda x: x.genome_region);
+    user_genes_withpos = filter(lambda x: hasattr(x.genome_region,'chr'),user_genes);
+    user_genes_nopos = filter(lambda x: not hasattr(x.genome_region,'chr'),user_genes);
+    
+    # Put genes with known positions first, and ones without them last. 
+    user_genes_ordered = sorted(user_genes_withpos,key=lambda x: x.genome_region);
+    user_genes_ordered += user_genes_nopos;
     
     # Gene summary table. 
     # Print out a description of the table. 
@@ -579,7 +583,7 @@ class Gene:
       print >> out, "";
       
       user_t = prettytable.PrettyTable(['Chrom','Gene','Search Terms Matched','PubMed Articles']);
-      for gene in user_genes:
+      for gene in user_genes_ordered:
         symb = gene.getSymbol();
       
         # Remember order that symbols are listed in the summary table. But don't include duplicates!

@@ -521,7 +521,18 @@ def write_rest_input(settings,out=sys.stdout):
   print >> out, "-----";
   print >> out, "";
   
-  genes_ordered = sorted([Gene.valueOf(g) for g in settings.genes],key = lambda x: x.genome_region);
+  # Figure out which genes provided by the user had positions. 
+  # If it doesn't have a position, we won't list it here. 
+  user_genes = [];
+  user_genes_nopos = [];
+  for g in settings.genes:
+    gene = Gene.valueOf(g);
+    if hasattr(gene.genome_region,'chr'):
+      user_genes.append(g);
+    else:
+      user_genes_nopos.append(g);
+  
+  genes_ordered = sorted([Gene.valueOf(g) for g in user_genes],key = lambda x: x.genome_region);
   if len(settings.genes) > 0:
     gene_table = PrettyTable(['Gene','Chrom','txStart','txEnd']);
     for g in genes_ordered:
@@ -534,6 +545,13 @@ def write_rest_input(settings,out=sys.stdout):
     
     print >> out, gene_table.get_string(hrules=prettytable.ALL,rest=True);
     print >> out, "";
+    
+    if len(user_genes_nopos) > 0:
+      print >> out, "We could not find positions for the following user-requested genes:";
+      print >> out, ""
+      for g in user_genes_nopos:
+        print >> out, "* %s" % g;
+      print >> out, "";
   else:
     print >> out, "No genes explicitly requested by the user.";
     print >> out, "";
