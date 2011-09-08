@@ -148,8 +148,11 @@ def omim_parse_phenos(soup):
 def omim_get_gene_article(gene_symbol,verbose=False):
   try:
     omim_id = omim_find_gene(gene_symbol);
+    if omim_id == None:
+      print >> sys.stderr, "Warning: couldn't find OMIM ID for gene %s.." % gene_symbol;
+      return None;
   except:
-    print >> sys.stderr, "Warning: couldn't find OMIM information for gene %s.." % gene_symbol;
+    print >> sys.stderr, "Error: unknown error occurred when looking up OMIM ID for gene %s.." % gene_symbol;
     if verbose:
       traceback.print_exc();  
     return None;

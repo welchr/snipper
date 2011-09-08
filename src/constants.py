@@ -26,7 +26,7 @@ SCANDB_PAPER_URL = "http://www.ncbi.nlm.nih.gov/pubmed/19933162";
 TAXON_ID_HUMAN = '9606';
 
 # NCBI URLs. 
-OMIM_WEB_URL = "http://www.ncbi.nlm.nih.gov/omim/";
+OMIM_WEB_URL = "http://omim.org/entry/";
 PUBMED_WEB_URL = "http://www.ncbi.nlm.nih.gov/pubmed/";
 
 # Time to wait before a connection to MiMI, ScanDB, PubMed, etc. will timeout. 

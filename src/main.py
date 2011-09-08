@@ -24,6 +24,7 @@ import os
 import pdb
 import time
 import subprocess
+import traceback
 from gene import *
 from util import *
 from constants import *
@@ -169,7 +170,7 @@ def print_debug():
   def print_err(x):
     print >> sys.stderr, x;
 
-  print_err("An error has occurred. Please see below for debugging information.");
+  print_err("An error has occurred. Please provide the developer with the following information.");
   print_err("");
   print_err("Python executable: %s" % sys.executable);
   print_err("Platform: %s" % str(platform.uname()));
@@ -284,7 +285,7 @@ def run_snipper(settings):
   
   # If OMIM is specified, load OMIM data. 
   if settings.omim:
-    print >> sys.stderr, "Querying NCBI for OMIM information..";
+    print >> sys.stderr, "Querying omim.org for OMIM information..";
     Gene.loadOMIM(gene_symbols);  
 
   # If Pubmed specified, load Pubmed information. 
@@ -841,8 +842,8 @@ def main():
   else:
     # Run in console mode. 
     try:
-      settings.getCmdLine();
       print_program_header();
+      settings.getCmdLine();
       run_snipper(settings);
     except KeyboardInterrupt:
       print >> sys.stderr, "";
@@ -851,7 +852,17 @@ def main():
       if _SNIPPER_DEBUG:
         print_debug();
       else:
-        print sys.exc_value;
+        print >> sys.stderr, fill("An error has occurred. Please provide the following "
+                                  "information to the developer, or run snipper with --debug to "
+                                  "see additional debugging information. ");
+        print >> sys.stderr, "";
+        
+        print >> sys.stderr, "Traceback:";
+        traceback.print_tb(sys.exc_traceback);
+        print >> sys.stderr, str(sys.exc_type);
+        print >> sys.stderr, "";
+        
+        print >> sys.stderr, sys.exc_value;
 
 if __name__ == "__main__":
   freeze_support();

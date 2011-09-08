@@ -33,6 +33,7 @@ from util import *
 from constants import *
 from scandb import *
 from snp import *
+from omim import *
  
 class Gene:
   # References to gene objects. 
@@ -60,14 +61,12 @@ class Gene:
     self.type = None;
     self.loc = None;
     self.omim_id = None;
-    self.omim_text = None;
+    self.omim_article = None;
     self.summary = None;
     self.GO = [];
     self.phenotypes = [];
     self.pathways = dict();
     self.terms = dict();
-    self.soup = None;
-    self.omim_soup = None;
     self.snps = dict();
     self.regions = dict();
     self.eqtls = eQTLSet();
@@ -111,17 +110,6 @@ class Gene:
   # Chromosomal location. 
   def setLoc(self,loc):
     self.loc = str(loc);
-    
-  # Set the OMIM ID linked to this gene. 
-  def setOMIM(self,omim_id):
-    self.omim_id = str(omim_id);
- 
-  def getOMIM(self):
-    return self.omim_id;
-
-  # Set the OMIM text linked to this gene. 
-  def setOMIMText(self,omim_text):
-    self.omim_text = str(omim_text);
 
   # Summary text for the gene. 
   def setSummary(self,summary_text):
@@ -196,11 +184,19 @@ class Gene:
         data[Gene.GOTERM] = term;
         break;
 
-    # Search OMIM record. 
-    if self.omim_soup:
-      match = self.omim_soup.find(text=pattern);
-      if match != None:
-        data[Gene.OMIM] = term;
+#    # Search OMIM record. 
+#    if self.omim_soup:
+#      match = self.omim_soup.find(text=pattern);
+#      if match != None:
+#        data[Gene.OMIM] = term;
+
+    # Search OMIM sections. 
+    if self.omim_article:
+      for section in self.omim_article.sections:
+        match = pattern.search(section.text);
+        if match != None:
+          data[Gene.OMIM] = term;
+          break;
 
     # Install information into gene. 
     for where in data:
@@ -243,21 +239,6 @@ class Gene:
 
   def getTotalPubmed(self):
     return self.total_pubmed;
-
-  # Caches the full soupified XML response from NCBI for the gene
-  # in case someone else wants to mess with it. 
-  def setSoup(self,soup):
-    self.soup = soup;
-
-  def getSoup(self):
-    return self.soup;
-
-  # Storage of OMIM soup as well. 
-  def setOMIMSoup(self,soup):
-    self.omim_soup = soup;
-
-  def getOMIMSoup(self):
-    return self.omim_soup;
 
   # Adds information about SNPs that are either near or inside this gene. 
   # If the distance is 0, it is considered to be within the gene. 
@@ -384,16 +365,22 @@ class Gene:
     # OMIM ID. 
     if self.omim_id != None:
       print >> out, "";
-      print >> out, prefix + "OMIM: [" + self.omim_id + "] Link: " + OMIM_URL + "?id=" + self.omim_id;
+      print >> out, prefix + "OMIM: [" + self.omim_id + "] Link: " + OMIM_WEB_URL + self.omim_id;
     else:
       print >> out, "";
       print >> out, prefix + "OMIM: None";
 
     # OMIM text. 
-    if self.omim_text != None:
-      omim_line = prefix + "OMIM Text: " + self.omim_text;
-      for line in wrap(omim_line,initial_indent="",subsequent_indent="",width=term_width):
-        print >> out, line;
+#    if self.omim_text != None:
+#      omim_line = prefix + "OMIM Text: " + self.omim_text;
+#      for line in wrap(omim_line,initial_indent="",subsequent_indent="",width=term_width):
+#        print >> out, line;
+
+    if self.omim_article != None:
+      for section in self.omim_article.sections:
+        omim_line = prefix + ("OMIM %s: " % section.name) + section.text;
+        for line in wrap(omim_line,initial_indent="",subsequent_indent="",width=term_width):
+          print >> out, line;
 
     # The number of Pubmed articles. 
     #if self.countPubmed() > 0:
@@ -618,6 +605,11 @@ class Gene:
     print >> out, "-----";
     print >> out, "";
     
+    print >> out, ("Genes are listed below, sorted by genomic position. Each "
+                  "SNP/region is considered in order, genes are then listed in "
+                  "order of genomic position for each locus. ");
+    print >> out, "";
+    
     omim_links = [];
     for symb in symbols_ordered:
       gene = Gene.valueOf(symb);
@@ -629,7 +621,13 @@ class Gene:
       print >> out, symb;
       print >> out, '^' * len(symb);
       print >> out, "";
-      print >> out, "General information regarding this gene: ";
+      
+      print >> out, ".. contents::";
+      print >> out, "   :local:";
+      print >> out, "";
+      
+      print >> out, "General Information";
+      print >> out, "*******************";
       print >> out, "";
       
       print >> out, ":Full gene name: " + str(gene.desc);
@@ -641,10 +639,14 @@ class Gene:
       
       # SNP table near gene. 
       if len(gene.snps) > 0:
-        snp_table = prettytable.PrettyTable(['SNP','Distance (bp)','Direction']);
+        print >> out, "User SNPs";
+        print >> out, "*********";
+        print >> out, "";
+        
         print >> out, "SNPs given by the user that are near or inside this gene: ";
         print >> out, "";
         
+        snp_table = prettytable.PrettyTable(['SNP','Distance (bp)','Direction']);
         for snp in sorted(gene.snps,key=lambda x: int(gene.snps[x]['distance'])):
           snp_table.add_row([snp,gene.snps[snp]['distance'],gene.snps[snp]['updown']]);
         
@@ -653,10 +655,14 @@ class Gene:
       
       # Region table. 
       if len(gene.regions) > 0:
-        region_table = prettytable.PrettyTable(['Region','Containment']);
+        print >> out, "User Regions";
+        print >> out, "************";
+        print >> out, "";
+        
         print >> out, "Regions given by the user overlapping this gene:";
         print >> out, "";
         
+        region_table = prettytable.PrettyTable(['Region','Containment']);
         for region,contain in gene.regions.iteritems():
           region_table.add_row([str(region),contain]);
         
@@ -665,6 +671,10 @@ class Gene:
       
       # eQTLs. 
       if len(gene.eqtls) > 0:
+        print >> out, "eQTLs";
+        print >> out, "*****";
+        print >> out, "";
+        
         print >> out, "This gene is a target of the following eQTL associations:";
         print >> out, "";
         gene.eqtls.write_rest_table(out);
@@ -673,7 +683,8 @@ class Gene:
       # Summary. 
       print >> out, ".. _%s %s:" % (gene.symb,Gene.SUMMARY);
       print >> out, "";
-      print >> out, "**Summary**";
+      print >> out, "NCBI Summary";
+      print >> out, "************";
       print >> out, "";
       if gene.summary != None and gene.summary != "None":
         print >> out, markup_term(gene.summary,gene.getSearchTerms().get(Gene.SUMMARY));
@@ -681,7 +692,7 @@ class Gene:
         print >> out, "None available.";
       print >> out, "";
       
-      # OMIM summary. 
+      # OMIM data. 
       if gene.omim_id != None:
         print >> out, ".. _OMIM ID %s: %s" % (str(gene.omim_id),OMIM_WEB_URL + str(gene.omim_id));
         print >> out, "";
@@ -689,20 +700,38 @@ class Gene:
       print >> out, ".. _%s %s:" % (gene.symb,Gene.OMIM);  
       print >> out, "";
       
-      print >> out, "**OMIM Summary**";
+      print >> out, "OMIM";
+      print >> out, "****";
       print >> out, "";
-      if gene.omim_text != None:
-        omim_text = markup_term(gene.omim_text,gene.getSearchTerms().get(Gene.OMIM));
-        print >> out, gene.omim_text + " [%s]" % "`OMIM ID %s`_" % str(gene.omim_id); 
+      
+#      if gene.omim_text != None:
+#        omim_text = markup_term(gene.omim_text,gene.getSearchTerms().get(Gene.OMIM));
+#        print >> out, gene.omim_text + " [%s]" % "`OMIM ID %s`_" % str(gene.omim_id); 
+#      else:
+#        print >> out, "No OMIM data available for this gene.";
+#      print >> out, "";
+
+      if gene.omim_article != None:
+        print >> out, ":OMIM ID: " + "`OMIM ID %s`_" % str(gene.omim_id);
+        print >> out, "";
+        
+        for section in gene.omim_article.sections:
+          print >> out, "**%s**" % section.name;
+          print >> out, "";
+          
+          omim_text = markup_term(section.text,gene.getSearchTerms().get(Gene.OMIM));
+          print >> out, omim_text;
+          print >> out, "";
       else:
-        print >> out, "No summary available for this gene.";
+        print >> out, "No OMIM data available for this gene.";
       print >> out, "";
       
       # Phenotypes. 
       print >> out, ".. _%s %s:" % (gene.symb,Gene.PHENOTYPE);
       print >> out, "";
       
-      print >> out, "**Phenotypes**";
+      print >> out, "NCBI Phenotypes";
+      print >> out, "***************";
       print >> out, "";
       if len(gene.phenotypes) > 0:
         for pheno in gene.phenotypes:
@@ -717,7 +746,8 @@ class Gene:
       print >> out, ".. _%s %s:" % (gene.symb,Gene.GOTERM);
       print >> out, "";
       
-      print >> out, "**Gene Ontology**";
+      print >> out, "Gene Ontology";
+      print >> out, "*************";
       print >> out, "";
       if len(gene.GO) > 0:
         for goterm in gene.GO:
@@ -732,7 +762,8 @@ class Gene:
       print >> out, ".. _%s %s:" % (gene.symb,Gene.PATHWAY);
       print >> out, "";
       
-      print >> out, "**Pathways**";
+      print >> out, "KEGG Pathways";
+      print >> out, "*************";
       print >> out, "";
       if len(gene.pathways) > 0:
         for pathway,url in gene.pathways.iteritems():
@@ -747,7 +778,8 @@ class Gene:
       print >> out, ".. _%s %s:" % (gene.symb,Gene.GENERIF);
       print >> out, "";
       
-      print >> out, "**GeneRIFs**";
+      print >> out, "GeneRIFs";
+      print >> out, "********";
       print >> out, "";
       pubmed_links = [];
       if len(gene.gene_rifs) > 0:
@@ -768,7 +800,8 @@ class Gene:
       print >> out, ".. _%s %s:" % (gene.symb,Gene.PUBMED);
       print >> out, "";
       
-      print >> out, "**PubMed Articles**";
+      print >> out, "PubMed Articles";
+      print >> out, "***************";
       print >> out, "";
       
       if len(gene.pubmed_ids) > 0:
@@ -821,6 +854,49 @@ class Gene:
         chr = chrom2chr(chrom);
         gene.genome_region = ChromRegion(chr,start,stop);
 
+#  # Load OMIM information for specified genes. 
+#  # If the genes specified have not been populated previously, they will be after this call. 
+#  @staticmethod
+#  def loadOMIM(symbols=set()):
+#    if not isIterable(symbols):
+#      raise Exception, "You must pass a list or set of either symbols or uids into loadOMIM.";
+#    
+#    Gene.populate(symbols);
+#
+#    omim_info = dict();
+#    for symb in symbols:
+#      gene = Gene.valueOf(symb);
+#      omim_id = gene.getOMIM();
+#      if omim_id != None:
+#        omim_info[omim_id] = symb;
+#
+#    # Some genes may not have OMIM IDs. 
+#    # Remove the 'None' key. 
+#    if omim_info.has_key('None'):
+#      omim_info.pop('None');
+#
+#    # Get the soup for all OMIM IDs. 
+#    try:
+#      soup = fetchOMIMSoup(omim_info.keys());
+#    except KeyboardInterrupt:
+#      raise;
+#    except:
+#      print >> sys.stderr, fill("Error: NCBI did not respond to our query for OMIM "
+#                            "information, it will be skipped for this run.. ");
+#      
+#      if _SNIPPER_DEBUG:
+#        traceback.print_exc();
+#      
+#      return;
+#
+#    # Process the soup and store info. 
+#    for omim_id in omim_info:
+#      root = findOMIMRoot(soup,omim_id);
+#      if root != None:
+#        gene = Gene.valueOf(omim_info[omim_id]);
+#        gene.setOMIMSoup(root);
+#        gene.setOMIMText( extractOMIMText(root) );
+
   # Load OMIM information for specified genes. 
   # If the genes specified have not been populated previously, they will be after this call. 
   @staticmethod
@@ -829,40 +905,15 @@ class Gene:
       raise Exception, "You must pass a list or set of either symbols or uids into loadOMIM.";
     
     Gene.populate(symbols);
-
-    omim_info = dict();
+    
     for symb in symbols:
       gene = Gene.valueOf(symb);
-      omim_id = gene.getOMIM();
-      if omim_id != None:
-        omim_info[omim_id] = symb;
-
-    # Some genes may not have OMIM IDs. 
-    # Remove the 'None' key. 
-    if omim_info.has_key('None'):
-      omim_info.pop('None');
-
-    # Get the soup for all OMIM IDs. 
-    try:
-      soup = fetchOMIMSoup(omim_info.keys());
-    except KeyboardInterrupt:
-      raise;
-    except:
-      print >> sys.stderr, fill("Error: NCBI did not respond to our query for OMIM "
-                            "information, it will be skipped for this run.. ");
+      true_symb = gene.symb;
       
-      if _SNIPPER_DEBUG:
-        traceback.print_exc();
-      
-      return;
-
-    # Process the soup and store info. 
-    for omim_id in omim_info:
-      root = findOMIMRoot(soup,omim_id);
-      if root != None:
-        gene = Gene.valueOf(omim_info[omim_id]);
-        gene.setOMIMSoup(root);
-        gene.setOMIMText( extractOMIMText(root) );
+      article = omim_get_gene_article(true_symb,verbose=_SNIPPER_DEBUG);
+      if article != None:
+        gene.omim_id = article.id;
+        gene.omim_article = article;
 
   # Load Pubmed information for specified genes. 
   # If the genes have not been populated previously, they will be after this call. 
@@ -1055,7 +1106,6 @@ class Gene:
         gene.setSummary( extractSummary(root) );
         gene.setGO( extractGO(root) );
         gene.setPhenotypes( extractPhenotypes(root) );
-        gene.setOMIM( extractOMIM(root) );
         gene.setDesc( extractDesc(root) );
         gene.setKEGG( extractKEGG(root) );
         
