@@ -441,6 +441,10 @@ class Gene:
 
   @staticmethod
   def writeReST(symbols,db_file,search_terms=[],out=sys.stdout):
+    if out != sys.stdout:
+      out_path = os.path.dirname(out);
+      out = open(out,'w'); 
+    
     print >> out, "Gene Information";
     print >> out, "================";
     print >> out, "";
@@ -600,18 +604,16 @@ class Gene:
       print >> out, user_t.get_string(hrules=prettytable.ALL,rest=True)
       print >> out, "";
     
+    out.close();
+    
+    # Make directory for each gene's RST file. 
+    os.mkdir(os.path.join(out_path,"genes"));
+    
     # Print section for each gene. 
-    print >> out, "Genes";
-    print >> out, "-----";
-    print >> out, "";
-    
-    print >> out, ("Genes are listed below, sorted by genomic position. Each "
-                  "SNP/region is considered in order, genes are then listed in "
-                  "order of genomic position for each locus. ");
-    print >> out, "";
-    
     omim_links = [];
     for symb in symbols_ordered:
+      out = open(os.path.join(out_path,"genes","%s.rst" % symb),'w');
+      
       gene = Gene.valueOf(symb);
       symb = gene.getSymbol(); # override symbol with primary symbol
       

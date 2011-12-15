@@ -351,8 +351,7 @@ def make_rest(core_path,settings,gene_symbols,scandb_results,direct_ints):
     write_rest_input(settings,f);
 
   genes = os.path.join(rst_path,"genes.rst");
-  with open(genes,'w') as f:
-    Gene.writeReST(gene_symbols,settings.db_file,settings.terms,f);
+  Gene.writeReST(gene_symbols,settings.db_file,settings.terms,genes);
   
   terms = os.path.join(rst_path,"terms.rst");
   with open(terms,'w') as f:
@@ -851,6 +850,7 @@ def main():
     except:
       if _SNIPPER_DEV:
         print >> sys.stderr, "(dev mode) -- exception thrown!";
+        traceback.print_exc();
         pdb.post_mortem();
       elif _SNIPPER_DEBUG:
         print_debug();
