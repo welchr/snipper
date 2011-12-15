@@ -35,10 +35,10 @@ def omim_get_entry(omim_id):
   return BeautifulSoup(urlopen(OMIM_ENTRY_URL.format(omim_id)));
 
 def omim_parse_section(soup,section):
-  soup = soup.find("a",{'name':section.code}).next.next.next.next;
+  section_soup = soup.find("a",{'name':section.code}).next.next.next.next;
   lines = [];
   
-  for item in soup.contents:
+  for item in section_soup.contents:
     if isinstance(item,Tag):
       if item.name == 'br':
         lines += ["\n"];
@@ -52,6 +52,33 @@ def omim_parse_section(soup,section):
   section.text = "".join(lines);
   return section;
 
+# Parse the allelic variant section of the response. The formatting is a little
+# strange and needs to be handled separately from other sections. 
+def omim_parse_av(soup,section):
+  lines = [];
+  for av_num_tag in soup.findAll("span","av-number"):
+    av_num = av_num_tag.text;
+    av_name = av_num_tag.findNext("span","av-name").text;
+    av_mutation = " ".join(av_num_tag.findNext("td","av-mutations").text.split())
+
+    lines += [av_num + " " + av_name + "\n\n"];
+    
+    for item in av_num_tag.findNext("td","av-text").contents:
+      if isinstance(item,Tag):
+        if item.name == 'br':
+          lines += ["\n"];
+          continue;
+      
+      if not isinstance(item,NavigableString):
+        lines += [item.text];
+      else:
+        lines += [str(item)];
+    
+    lines += ['\n\n'];
+        
+  section.text = "".join(lines);
+  return section;
+    
 def omim_parse(soup):
   ident = omim_get_id(soup);
   title = omim_get_title(soup);
@@ -61,7 +88,11 @@ def omim_parse(soup):
  
   sections = omim_find_bio_sections(soup);
   for sect in sections:
-    omim_parse_section(soup,sect);
+    if sect.code == 'allelicVariants':
+      sect.name = "Allelic Variants (Selected Examples)"
+      omim_parse_av(soup,sect);
+    else:
+      omim_parse_section(soup,sect);
     article.add_section(sect);
   
   for ref in omim_parse_references(soup):
@@ -145,32 +176,36 @@ def omim_parse_phenos(soup):
 
   return phenos;
 
-def omim_get_gene_article(gene_symbol,verbose=False):
+def omim_get_gene_article(gene_symbol,verbose=False,dev=False):
   try:
     omim_id = omim_find_gene(gene_symbol);
     if omim_id == None:
-      print >> sys.stderr, "Warning: couldn't find OMIM ID for gene %s.." % gene_symbol;
+      if verbose:
+        print >> sys.stderr, "Warning: couldn't find OMIM ID for gene %s.." % gene_symbol;
       return None;
   except:
-    print >> sys.stderr, "Error: unknown error occurred when looking up OMIM ID for gene %s.." % gene_symbol;
     if verbose:
-      traceback.print_exc();  
+      print >> sys.stderr, "Error: unknown error occurred when looking up OMIM ID for gene %s.." % gene_symbol;
+    if dev:
+      raise;
     return None;
   
   try:
     soup = omim_get_entry(omim_id);
   except:
-    print >> sys.stderr, "Error: tried to download OMIM article %s, but couldn't!" % omim_id;
     if verbose:
-      traceback.print_exc();  
+      print >> sys.stderr, "Error: tried to download OMIM article %s, but couldn't!" % omim_id;
+    if dev:
+      raise;
     return None;
     
   try:
     article = omim_parse(soup);
   except:
-    print >> sys.stderr, "Error parsing OMIM article (%s) for gene %s, will be skipped.." % (omim_id,gene_symbol);
     if verbose:
-      traceback.print_exc();  
+      print >> sys.stderr, "Error parsing OMIM article (%s) for gene %s, will be skipped.." % (omim_id,gene_symbol);
+    if dev:
+      raise;
     return None;
     
   return article;

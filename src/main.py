@@ -849,7 +849,10 @@ def main():
       print >> sys.stderr, "";
       print >> sys.stderr, "Program terminated by user.";
     except:
-      if _SNIPPER_DEBUG:
+      if _SNIPPER_DEV:
+        print >> sys.stderr, "(dev mode) -- exception thrown!";
+        pdb.post_mortem();
+      elif _SNIPPER_DEBUG:
         print_debug();
       else:
         print >> sys.stderr, fill("An error has occurred. Please provide the following "

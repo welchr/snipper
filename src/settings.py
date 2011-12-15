@@ -435,6 +435,7 @@ If you have a very large set of genes and search terms, this can take a VERY lon
     parser.add_option("-o","--out",dest="outdir",default=self.outdir,help="Directory to use for storing output. This should be a directory that does not exist yet.");
     parser.add_option("--console",dest="console",action="store_true",default=self.console,help="Write results to console, instead of creating directory with HTML/text results.");
     parser.add_option("--debug",dest="debug",action="store_true",default=False,help=SUPPRESS_HELP);
+    parser.add_option("--dev",dest="dev",action="store_true",default=False,help=SUPPRESS_HELP);
 
     # Parse args. 
     (options,args) = parser.parse_args();
@@ -444,6 +445,12 @@ If you have a very large set of genes and search terms, this can take a VERY lon
       __builtin__._SNIPPER_DEBUG = True;
     else:
       __builtin__._SNIPPER_DEBUG = False;
+      
+    # Was dev mode enabled? 
+    if options.dev:
+      __builtin__._SNIPPER_DEV = True;
+    else:
+      __builtin__._SNIPPER_DEV = False;
 
     # If there are positional arguments, there was an error on the command line. 
     # Let them know the potential problem. 

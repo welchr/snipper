@@ -910,7 +910,7 @@ class Gene:
       gene = Gene.valueOf(symb);
       true_symb = gene.symb;
       
-      article = omim_get_gene_article(true_symb,verbose=_SNIPPER_DEBUG);
+      article = omim_get_gene_article(true_symb,verbose=_SNIPPER_DEBUG or _SNIPPER_DEV,dev=_SNIPPER_DEV);
       if article != None:
         gene.omim_id = article.id;
         gene.omim_article = article;
