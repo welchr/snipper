@@ -182,10 +182,12 @@ def omim_get_gene_article(gene_symbol,verbose=False,dev=False):
     if omim_id == None:
       if verbose:
         print >> sys.stderr, "Warning: couldn't find OMIM ID for gene %s.." % gene_symbol;
+        traceback.print_exc();
       return None;
   except:
     if verbose:
       print >> sys.stderr, "Error: unknown error occurred when looking up OMIM ID for gene %s.." % gene_symbol;
+      traceback.print_exc();
     if dev:
       raise;
     return None;
@@ -195,6 +197,7 @@ def omim_get_gene_article(gene_symbol,verbose=False,dev=False):
   except:
     if verbose:
       print >> sys.stderr, "Error: tried to download OMIM article %s, but couldn't!" % omim_id;
+      traceback.print_exc();
     if dev:
       raise;
     return None;
@@ -204,6 +207,7 @@ def omim_get_gene_article(gene_symbol,verbose=False,dev=False):
   except:
     if verbose:
       print >> sys.stderr, "Error parsing OMIM article (%s) for gene %s, will be skipped.." % (omim_id,gene_symbol);
+      traceback.print_exc();
     if dev:
       raise;
     return None;
