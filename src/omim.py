@@ -59,7 +59,7 @@ def omim_parse_av(soup,section):
   for av_num_tag in soup.findAll("span","av-number"):
     av_num = av_num_tag.text;
     av_name = av_num_tag.findNext("span","av-name").text;
-    av_mutation = " ".join(av_num_tag.findNext("td","av-mutations").text.split())
+    #av_mutation = " ".join(av_num_tag.findNext("td","av-mutations").text.split())
 
     lines += [av_num + " " + av_name + "\n\n"];
     
@@ -180,9 +180,6 @@ def omim_get_gene_article(gene_symbol,verbose=False,dev=False):
   try:
     omim_id = omim_find_gene(gene_symbol);
     if omim_id == None:
-      if verbose:
-        print >> sys.stderr, "Warning: couldn't find OMIM ID for gene %s.." % gene_symbol;
-        traceback.print_exc();
       return None;
   except:
     if verbose:

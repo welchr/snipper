@@ -42,10 +42,11 @@ import __builtin__
 
 # Global debug flag. 
 __builtin__._SNIPPER_DEBUG = False;
+__builtin__._SNIPPER_DEV = False;
 
-PROG_VERSION = "1.2";
+PROG_VERSION = "1.3";
 PROG_VERSION_STRING = "Version %s   " % PROG_VERSION;
-PROG_DATE = "06-23-2011";
+PROG_DATE = "03-07-2012";
 NUM_GENES_WARN = 50;
 
 def get_core_path():
@@ -840,9 +841,22 @@ def main():
       sys.exit(1);
   else:
     # Run in console mode. 
+    print_program_header();
     try:
-      print_program_header();
       settings.getCmdLine();
+    except SystemExit as e:
+      sys.exit(str(e));
+    except Exception as e:
+      print >> sys.stderr, "An error occurred parsing your command line arguments. The error was: ";
+      print >> sys.stderr, str(e);
+
+      print >> sys.stderr, "";
+      print >> sys.stderr, "The actual traceback was: ";
+      traceback.print_tb(sys.exc_traceback);
+      print >> sys.stderr, str(sys.exc_type);
+      sys.exit(1);
+
+    try:
       run_snipper(settings);
     except KeyboardInterrupt:
       print >> sys.stderr, "";
