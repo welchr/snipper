@@ -42,10 +42,11 @@ import __builtin__
 
 # Global debug flag. 
 __builtin__._SNIPPER_DEBUG = False;
+__builtin__._SNIPPER_DEV = False;
 
-PROG_VERSION = "1.2";
+PROG_VERSION = "1.3";
 PROG_VERSION_STRING = "Version %s   " % PROG_VERSION;
-PROG_DATE = "06-23-2011";
+PROG_DATE = "05-14-2013";
 NUM_GENES_WARN = 50;
 
 def get_core_path():
@@ -829,20 +830,37 @@ def main():
   # If there are no arguments, try to launch the UI. 
   if len(sys.argv) <= 1:
     try:
+      print >> sys.stderr, "Trying to launch Snipper GUI...";
       import ui
       ui.main();
-    except:
+    except Exception as e:
       print >> sys.stderr, fill("I tried to start the GUI since no arguments were given, but "
                         "it failed (you may not have a python interpreter compiled "
                         "against Tk.) Check the documentation for more info on this. "
                         "In the meantime, you can run Snipper in command-line mode by "
                         "supplying arguments. For a list, use -h. ");
+      print >> sys.stderr, "";
+      print >> sys.stderr, "The exact error was: ";
+      print >> sys.stderr, str(e);
       sys.exit(1);
   else:
     # Run in console mode. 
+    print_program_header();
     try:
-      print_program_header();
       settings.getCmdLine();
+    except SystemExit as e:
+      sys.exit(str(e));
+    except Exception as e:
+      print >> sys.stderr, "An error occurred parsing your command line arguments. The error was: ";
+      print >> sys.stderr, str(e);
+
+      print >> sys.stderr, "";
+      print >> sys.stderr, "The actual traceback was: ";
+      traceback.print_tb(sys.exc_traceback);
+      print >> sys.stderr, str(sys.exc_type);
+      sys.exit(1);
+
+    try:
       run_snipper(settings);
     except KeyboardInterrupt:
       print >> sys.stderr, "";

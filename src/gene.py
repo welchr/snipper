@@ -971,10 +971,12 @@ class Gene:
         num_terms = len(terms);
         
         # This could take a really long time.. are they sure they want to do this? 
-        msg = "** WARNING: Searching Pubmed for each search term + gene combination with %s genes and %s search terms will require approximately %s minutes - do you wish to proceed [y/n]? " %\
-        (str(num_genes),str(num_terms),str( 3*num_genes*num_terms/60.0 ));
+        min_wait = 3*num_genes*num_terms/60.0;
+        if min_wait > 5:
+          msg = "Warning: Searching Pubmed for each search term + gene combination with %s genes and %s search terms will require approximately %s minutes.." %(str(num_genes),str(num_terms),str(min_wait));
 
-        answer = confirm(msg);
+        #answer = confirm(msg);
+        answer = True;
 
         if answer:
           for uid in pubmed_data:
