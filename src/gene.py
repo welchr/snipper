@@ -976,7 +976,7 @@ class Gene:
           msg = "Warning: Searching Pubmed for each search term + gene combination with %s genes and %s search terms will require approximately %s minutes.." %(str(num_genes),str(num_terms),str(min_wait));
 
         #answer = confirm(msg);
-        answer = True;
+				answer = True;
 
         if answer:
           for uid in pubmed_data:
@@ -996,7 +996,7 @@ class Gene:
                 pop_articles.add(id);
               
               # Wait 3 seconds. 
-              sleep(3);
+              sleep(1);
               
         else:
           Gene.loadPubmed(symbols,terms,pnum,False);
